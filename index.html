@@ -1228,14 +1228,16 @@ function gistHeaders() {
 
 function gistPayload() {
   const backup = {
-    version: 2,
+    version: 3,
     savedAt: new Date().toISOString(),
     device: navigator.userAgent.slice(0, 60),
     settings: {
-      rate: settings.rate,
-      budgets: settings.budgets,
+      rate:           settings.rate,
+      budgets:        settings.budgets,
       paymentMethods: settings.paymentMethods,
+      // githubPAT et githubGistId exclus volontairement (sensibles / propres à chaque appareil)
     },
+    pin: localStorage.getItem('mi_pin') || null, // hash SHA-256, jamais le code en clair
     expenses,
   };
   return JSON.stringify({ files: { 'mi-depenses.json': { content: JSON.stringify(backup, null, 2) } } });
@@ -1304,14 +1306,19 @@ async function loadFromGist() {
       settings = {
         ...settings,
         ...d.settings,
-        githubPAT:    settings.githubPAT,
-        githubGistId: settings.githubGistId,
+        githubPAT:    settings.githubPAT,    // toujours propre à l'appareil
+        githubGistId: settings.githubGistId, // toujours propre à l'appareil
       };
+    }
+    // Restaure le PIN hashé si présent dans le backup
+    if (d.pin) {
+      localStorage.setItem('mi_pin', d.pin);
     }
     localStorage.setItem('mi_expenses', JSON.stringify(expenses));
     localStorage.setItem('mi_settings', JSON.stringify(settings));
     setSyncState('synced');
     render();
+    renderSettings();
     toast(`Chargé depuis Gist — ${expenses.length} dépenses (${d.savedAt?.slice(0,10)||'?'})`);
   } catch (e) {
     setSyncState('error');
