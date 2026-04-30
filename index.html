@@ -87,6 +87,21 @@ button { cursor: pointer; border: none; background: none; }
   border-color: var(--accent);
 }
 
+/* ── CURRENCY TOGGLE ── */
+.currency-toggle {
+  display: flex; align-items: center;
+  background: var(--surface2); border-radius: 20px;
+  padding: 3px; gap: 2px; border: 1px solid var(--border);
+}
+.ct-opt {
+  padding: 4px 10px; border-radius: 16px;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  color: var(--text3); transition: all .18s;
+}
+.ct-opt.active {
+  background: var(--accent); color: #fff;
+}
+
 /* ── NAV BAR ── */
 #nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -501,8 +516,16 @@ button { cursor: pointer; border: none; background: none; }
 <!-- ═══════════════ VIEW: DASHBOARD ═══════════════ -->
 <div class="view active" id="view-dashboard">
   <div class="view-header">
-    <div class="view-title">Mon Budget Stage</div>
-    <div class="view-sub">Tunisie · Mai – Août 2026</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="view-title">Mon Budget Stage</div>
+        <div class="view-sub">Tunisie · Mai – Août 2026</div>
+      </div>
+      <div class="currency-toggle" id="dash-currency-toggle" onclick="toggleDashCurrency()">
+        <span id="dc-eur" class="ct-opt active">€</span>
+        <span id="dc-tnd" class="ct-opt">TND</span>
+      </div>
+    </div>
   </div>
   <div class="month-tabs" id="dash-tabs"></div>
   <div class="view-body" id="dash-body"></div>
@@ -576,15 +599,19 @@ button { cursor: pointer; border: none; background: none; }
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Date</label>
-        <input class="form-input" type="date" id="f-date">
+        <input class="form-input" type="date" id="f-date" onchange="autoFillRecuName()">
       </div>
       <div class="form-group">
         <label class="form-label">Catégorie</label>
-        <select class="form-select" id="f-cat"></select>
+        <select class="form-select" id="f-cat" onchange="autoFillRecuName()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Enseigne / Lieu</label>
+        <input class="form-input" type="text" id="f-enseigne" placeholder="Ex: Carrefour, Pharmacie…" oninput="autoFillRecuName()">
       </div>
       <div class="form-group">
         <label class="form-label">Description</label>
-        <input class="form-input" type="text" id="f-desc" placeholder="Ex: Supermarché Carrefour…">
+        <input class="form-input" type="text" id="f-desc" placeholder="Ex: Courses semaine, médicaments…">
       </div>
       <div class="form-row" style="margin-bottom:16px">
         <div class="form-group" style="margin:0">
@@ -628,7 +655,7 @@ button { cursor: pointer; border: none; background: none; }
       </div>
       <div class="form-group">
         <label class="form-label">Nom du reçu</label>
-        <input class="form-input" type="text" id="f-recu-name" placeholder="Ex: recu_loyer_mai.jpg">
+        <input class="form-input" type="text" id="f-recu-name" placeholder="Ex: recu_loyer_mai.jpg" oninput="this.dataset.userEdited='1'">
       </div>
       <button class="btn btn-accent" id="btn-submit-add" onclick="submitAdd()">💾 Enregistrer</button>
       <div style="height:8px"></div>
@@ -788,7 +815,8 @@ const CAT_COLORS = {
 let expenses  = [];
 let settings  = { rate: 3.38, budgets: {}, paymentMethods: null, githubPAT: '', githubGistId: '' };
 let curView   = 'dashboard';
-let filterMo  = 'all';
+let filterMo    = 'all';
+let dashCurrency = 'EUR';
 let search    = '';
 let catFilter = 'all';
 let photoData = null;
@@ -959,6 +987,17 @@ async function disconnectGist() {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function fmtEur(n, dp=2) { return (n||0).toFixed(dp).replace('.',',') + ' €'; }
 function fmtTnd(n, dp=2) { return (n||0).toFixed(dp).replace('.',',') + ' TND'; }
+// Dashboard display currency (toggleable)
+function dashFmt(eurVal, dp=2) {
+  if(dashCurrency==='TND') return fmtTnd(eurVal * settings.rate, dp);
+  return fmtEur(eurVal, dp);
+}
+function toggleDashCurrency() {
+  dashCurrency = dashCurrency==='EUR' ? 'TND' : 'EUR';
+  document.getElementById('dc-eur').classList.toggle('active', dashCurrency==='EUR');
+  document.getElementById('dc-tnd').classList.toggle('active', dashCurrency==='TND');
+  renderDash();
+}
 function pct(a,b) { return b>0 ? Math.min((a/b)*100,100) : 0; }
 
 function toEur(amount, currency) {
@@ -978,7 +1017,10 @@ function expenseTnd(e) { return toTnd(e.amount, e.currency); }
 
 function getMonth(e) {
   if(!e.date) return null;
-  return e.date.slice(0,7); // "2026-05"
+  const ym = e.date.slice(0,7);
+  // Les dépenses d'avril sont regroupées dans Mai (prépa)
+  if(ym === '2026-04') return '2026-05';
+  return ym;
 }
 function getMonthIdx(e) {
   const ym = getMonth(e);
@@ -1110,37 +1152,37 @@ function renderDash() {
   <div class="stat-grid" style="margin-top:12px">
     <div class="stat-card accent-bg">
       <div class="stat-label">Budget total</div>
-      <div class="stat-value mono">${fmtEur(budgetRef,0)}</div>
+      <div class="stat-value mono">${dashFmt(budgetRef,0)}</div>
       <div class="stat-small">${filterMo==='all'?'Mai – Août 2026':MONTH_LABELS[MONTHS.indexOf(filterMo)]}</div>
     </div>
     <div class="stat-card ${reste>=0?'green-bg':'red-bg'}">
       <div class="stat-label">Reste</div>
-      <div class="stat-value mono">${fmtEur(reste,0)}</div>
+      <div class="stat-value mono">${dashFmt(reste,0)}</div>
       <div class="stat-small">${pctUsed.toFixed(0)}% consommé</div>
     </div>
   </div>
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-label">Dépensé</div>
-      <div class="stat-value mono">${fmtEur(totalEur,2)}</div>
-      <div class="stat-small">${fmtTnd(totalTnd,0)}</div>
+      <div class="stat-value mono">${dashFmt(totalEur,2)}</div>
+      <div class="stat-small">${dashCurrency==='EUR'?fmtTnd(totalTnd,0):fmtEur(totalEur,2)}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Nb dépenses</div>
       <div class="stat-value">${nbDep}</div>
-      <div class="stat-small">Moy. ${fmtEur(avgDep,2)}</div>
+      <div class="stat-small">Moy. ${dashFmt(avgDep,2)}</div>
     </div>
   </div>
   <div class="stat-grid">
     <div class="stat-card green-bg">
       <div class="stat-label">À rembourser</div>
-      <div class="stat-value mono">${fmtEur(totalRemb,2)}</div>
+      <div class="stat-value mono">${dashFmt(totalRemb,2)}</div>
       <div class="stat-small">Remboursable LEEM</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Frais bancaires</div>
-      <div class="stat-value mono">${fmtEur(totalBankFees,2)}</div>
-      <div class="stat-small">Pourboires: ${fmtEur(totalPourboires,2)}</div>
+      <div class="stat-value mono">${dashFmt(totalBankFees,2)}</div>
+      <div class="stat-small">Pourboires: ${dashFmt(totalPourboires,2)}</div>
     </div>
   </div>
 
@@ -1149,12 +1191,12 @@ function renderDash() {
     <div class="card-title">Progression budget</div>
     <div class="prog-header">
       <span class="prog-label">Total dépensé</span>
-      <span class="prog-amount">${fmtEur(totalEur,0)} / ${fmtEur(budgetRef,0)}</span>
+      <span class="prog-amount">${dashFmt(totalEur,0)} / ${dashFmt(budgetRef,0)}</span>
     </div>
     <div class="prog-bar-bg">
       <div class="prog-bar" style="width:${pctUsed}%;background:${pctColor}"></div>
     </div>
-    <div class="prog-sub"><span>${pctUsed.toFixed(1)}% utilisé</span><span>Reste: ${fmtEur(reste,0)}</span></div>
+    <div class="prog-sub"><span>${pctUsed.toFixed(1)}% utilisé</span><span>Reste: ${dashFmt(reste,0)}</span></div>
   </div>
 
   <!-- Donut chart -->
@@ -1163,7 +1205,7 @@ function renderDash() {
     <div class="donut-wrap">
       <svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0">
         ${makeDonut(donutSegs, totalEur, 60, 60, 45, 18)}
-        <text x="60" y="56" text-anchor="middle" font-family="Nunito,sans-serif" font-size="11" font-weight="800" fill="#1a1d2e">${fmtEur(totalEur,0)}</text>
+        <text x="60" y="56" text-anchor="middle" font-family="Nunito,sans-serif" font-size="11" font-weight="800" fill="#1a1d2e">${dashFmt(totalEur,0)}</text>
         <text x="60" y="69" text-anchor="middle" font-family="Nunito,sans-serif" font-size="9" fill="#a0a8c0">total</text>
       </svg>
       <div class="donut-legend">
@@ -1190,10 +1232,10 @@ function renderDash() {
           <span class="prog-label">
             <span style="background:${col.bg};color:${col.text};padding:2px 8px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13,col.text)} ${c.lbl}</span>
           </span>
-          <span class="prog-amount">${fmtEur(spent,0)}${budget>0?' / '+fmtEur(budget,0):''}</span>
+          <span class="prog-amount">${dashFmt(spent,0)}${budget>0?' / '+dashFmt(budget,0):''}</span>
         </div>
         ${budget>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${p}%;background:${pColor}"></div></div>
-        <div class="prog-sub"><span>${p.toFixed(0)}%</span><span>${budget>0?'Reste: '+fmtEur(budget-spent,0):''}</span></div>`:
+        <div class="prog-sub"><span>${p.toFixed(0)}%</span><span>${budget>0?'Reste: '+dashFmt(budget-spent,0):''}</span></div>`:
         `<div class="prog-sub"><span>Pas de budget fixé</span></div>`}
       </div>`;
     }).join('')}
@@ -1208,7 +1250,7 @@ function renderDash() {
         const h = maxMonthly>0 ? Math.max(4,(v/maxMonthly)*100) : 4;
         const col = ['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
         return `<div class="monthly-bar-wrap">
-          <div class="monthly-bar-val">${v>0?fmtEur(v,0):''}</div>
+          <div class="monthly-bar-val">${v>0?dashFmt(v,0):''}</div>
           <div class="monthly-bar-bg">
             <div class="monthly-bar-fill" style="height:${h}%;background:${col}"></div>
           </div>
@@ -1223,15 +1265,15 @@ function renderDash() {
     <div class="card-title">💵 Suivi Cash</div>
     <div class="cash-row">
       <span class="cash-row-label">Total retiré</span>
-      <span class="cash-row-val" style="color:var(--orange)">${fmtEur(cashRetire,2)}</span>
+      <span class="cash-row-val" style="color:var(--orange)">${dashFmt(cashRetire,2)}</span>
     </div>
     <div class="cash-row">
       <span class="cash-row-label">Payé en espèces</span>
-      <span class="cash-row-val">${fmtEur(paidEspeces,2)}</span>
+      <span class="cash-row-val">${dashFmt(paidEspeces,2)}</span>
     </div>
     <div class="cash-row">
       <span class="cash-row-label">Cash restant estimé</span>
-      <span class="cash-row-val" style="color:${cashRestant>=0?'var(--green)':'var(--red)'}">${fmtEur(cashRestant,2)}</span>
+      <span class="cash-row-val" style="color:${cashRestant>=0?'var(--green)':'var(--red)'}">${dashFmt(cashRestant,2)}</span>
     </div>
   </div>
   `;
@@ -1287,7 +1329,7 @@ function expenseCard(e) {
   return `<div class="expense-item" onclick="openDetail('${e.id}')">
     ${catIconHtml(e.catId, 22)}
     <div class="expense-info">
-      <div class="expense-desc">${escHtml(e.desc)||'Sans description'}</div>
+      <div class="expense-desc">${e.enseigne ? `<span style="font-weight:800">${escHtml(e.enseigne)}</span>${e.desc?` · ${escHtml(e.desc)}`:''}` : escHtml(e.desc)||'Sans description'}</div>
       <div class="expense-meta" style="display:flex;align-items:center;gap:4px">${payIcon}<span>${cat.lbl} · ${escHtml(e.payment||'—')}</span></div>
     </div>
     <div class="expense-amount">
@@ -1720,12 +1762,25 @@ function savePayMethods() {
   toast('Moyens de paiement sauvegardés !');
 }
 
+function autoFillRecuName() {
+  // Only auto-fill if user hasn't manually edited the field
+  const recuEl = document.getElementById('f-recu-name');
+  if(recuEl.dataset.userEdited === '1') return;
+  const enseigne = (document.getElementById('f-enseigne')?.value||'').trim();
+  const catId = document.getElementById('f-cat')?.value || '';
+  const date = document.getElementById('f-date')?.value || '';
+  const catLabel = CAT_MAP[catId]?.lbl || catId;
+  const parts = [enseigne, catLabel, date].filter(Boolean);
+  recuEl.value = parts.join('_').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_\-]/g,'');
+}
+
 function openAddModal() {
   editingId = null;
   photoData = null;
   document.getElementById('modal-add-title').textContent = 'Nouvelle dépense';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-cat').value = 'alim';
+  document.getElementById('f-enseigne').value = '';
   document.getElementById('f-desc').value = '';
   document.getElementById('f-amount').value = '';
   document.getElementById('f-currency').value = 'TND';
@@ -1734,11 +1789,14 @@ function openAddModal() {
   // default = premier moyen de paiement
   const methods = getPayMethods();
   if (methods.length) document.getElementById('f-payment').value = methods[0].name;
-  document.getElementById('f-recu-name').value = '';
+  const recuEl = document.getElementById('f-recu-name');
+  recuEl.dataset.userEdited = '0';
+  recuEl.value = '';
   setToggle('t-remb', false);
   setToggle('t-recu', false);
   updatePhotoPreview();
   openModal('modal-add');
+  autoFillRecuName();
 }
 
 function openEdit(id) {
@@ -1749,13 +1807,16 @@ function openEdit(id) {
   document.getElementById('modal-add-title').textContent = 'Modifier la dépense';
   document.getElementById('f-date').value  = e.date;
   document.getElementById('f-cat').value   = e.catId;
+  document.getElementById('f-enseigne').value = e.enseigne||'';
   document.getElementById('f-desc').value  = e.desc||'';
   document.getElementById('f-amount').value = e.amount;
   document.getElementById('f-currency').value = e.currency||'TND';
   document.getElementById('f-bank').value  = e.bankFee||0;
   populatePaymentSelect();
   document.getElementById('f-payment').value = e.payment || getPayMethods()[0]?.name || '';
-  document.getElementById('f-recu-name').value = e.recuName||'';
+  const recuEl = document.getElementById('f-recu-name');
+  recuEl.value = e.recuName||'';
+  recuEl.dataset.userEdited = '1'; // preserve existing name in edit mode
   setToggle('t-remb', !!e.remb);
   setToggle('t-recu', !!e.recu);
   updatePhotoPreview();
@@ -1763,10 +1824,11 @@ function openEdit(id) {
 }
 
 function submitAdd() {
-  const date   = document.getElementById('f-date').value;
-  const catId  = document.getElementById('f-cat').value;
-  const desc   = document.getElementById('f-desc').value.trim();
-  const amount = parseFloat(document.getElementById('f-amount').value);
+  const date     = document.getElementById('f-date').value;
+  const catId    = document.getElementById('f-cat').value;
+  const enseigne = document.getElementById('f-enseigne').value.trim();
+  const desc     = document.getElementById('f-desc').value.trim();
+  const amount   = parseFloat(document.getElementById('f-amount').value);
   const currency = document.getElementById('f-currency').value;
   const bankFee  = parseFloat(document.getElementById('f-bank').value)||0;
   const payment  = document.getElementById('f-payment').value;
@@ -1780,13 +1842,14 @@ function submitAdd() {
   if(editingId) {
     const idx = expenses.findIndex(x=>x.id===editingId);
     if(idx>=0) {
-      expenses[idx] = {...expenses[idx], date, catId, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData};
+      // createdAt preserved — never overwritten on edit
+      expenses[idx] = {...expenses[idx], date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData};
     }
     toast('Dépense modifiée !');
   } else {
     const ym = date.slice(0,7);
     const moIdx = MONTH_DATES.indexOf(ym);
-    expenses.push({ id:uid(), date, catId, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, month: moIdx>=0?MONTHS[moIdx]:null });
+    expenses.push({ id:uid(), date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, month: moIdx>=0?MONTHS[moIdx]:null, createdAt: new Date().toISOString() });
     toast('Dépense ajoutée !');
   }
   save();
@@ -1814,6 +1877,7 @@ function openDetail(id) {
       </div>
       <div class="detail-amount">${fmtEur(eur)}</div>
       <div style="font-size:13px;color:var(--text3);margin-top:4px">${fmtTnd(tnd)} · ${formatDate(e.date)}</div>
+      ${e.enseigne ? `<div style="font-size:15px;font-weight:800;color:var(--text);margin-top:6px">${escHtml(e.enseigne)}</div>` : ''}
       <div style="margin-top:8px">
         <span style="background:${col.bg};color:${col.text};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px">${icon(cat.ic||'divers',14,col.text)} ${cat.lbl}</span>
       </div>
@@ -1843,6 +1907,10 @@ function openDetail(id) {
       <div class="detail-meta-item">
         <div class="detail-meta-label">Nom du reçu</div>
         <div class="detail-meta-val" style="font-size:12px">${e.recuName||'—'}</div>
+      </div>
+      <div class="detail-meta-item" style="grid-column:1/-1">
+        <div class="detail-meta-label">Ajouté le</div>
+        <div class="detail-meta-val" style="font-size:12px;color:var(--text3)">${e.createdAt ? new Date(e.createdAt).toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
       </div>
     </div>
 
