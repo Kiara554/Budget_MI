@@ -1,0 +1,25 @@
+{
+  "name": "MI Dépenses",
+  "short_name": "MI",
+  "description": "Suivi de dépenses pour stage en Tunisie 2026",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#f5f7ff",
+  "background_color": "#f5f7ff",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0c10" rx="96"/>
+  <rect x="80" y="260" width="72" height="172" fill="#e8ff47" rx="8"/>
+  <rect x="192" y="180" width="72" height="252" fill="#e8ff47" rx="8"/>
+  <rect x="304" y="320" width="72" height="112" fill="#e8ff47" rx="8"/>
+  <rect x="416" y="220" width="72" height="212" fill="#2dff9b" rx="8"/>
+  <text x="256" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="72" fill="#8892a4" letter-spacing="-2">MI</text>
+</svg>
