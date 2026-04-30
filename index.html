@@ -8,9 +8,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MI Dépenses">
+<meta name="format-detection" content="telephone=no">
 <title>MI Dépenses</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
+<!-- iPhone 15 / Dynamic Island splash -->
+<meta name="apple-touch-fullscreen" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -35,40 +38,62 @@
   --fd: 'Nunito', sans-serif;
   --fm: 'DM Mono', monospace;
   --nav: 72px;
+  --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+  background: #f5f7ff;
+  /* Bloque le scroll au niveau de la racine */
+  height: 100%; overflow: hidden;
+}
 body {
   font-family: var(--fd);
   background: var(--bg);
   color: var(--text);
-  min-height: 100dvh;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 input,select,textarea,button { font-family: inherit; color: inherit; }
 button { cursor: pointer; border: none; background: none; }
 
 /* ── LAYOUT ── */
-#app { max-width: 430px; margin: 0 auto; position: relative; }
+#app { max-width: 430px; margin: 0 auto; position: relative; height: 100dvh; overflow: hidden; }
+#views-container { height: 100dvh; overflow: hidden; }
 .view {
   display: none; flex-direction: column;
-  min-height: 100dvh;
-  padding-bottom: calc(var(--nav) + var(--safe-b) + 8px);
+  height: 100dvh;
+  overflow: hidden;
 }
 .view.active { display: flex; }
 .view-header {
-  padding: 20px 20px 0;
+  flex-shrink: 0;
+  /* padding-top tient compte de la Dynamic Island / notch */
+  padding: calc(20px + var(--safe-t)) 20px 0;
   background: var(--bg);
-  position: sticky; top: 0; z-index: 10;
+  position: relative; z-index: 10;
 }
 .view-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; color: var(--text); }
 .view-sub { font-size: 13px; color: var(--text3); margin-bottom: 12px; }
-.view-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+.view-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 0 16px calc(var(--nav) + var(--safe-b) + 16px);
+}
 
 /* ── MONTH TABS ── */
 .month-tabs {
+  flex-shrink: 0;
   display: flex; gap: 6px; overflow-x: auto;
   padding: 10px 20px; background: var(--bg);
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -111,9 +136,11 @@ button { cursor: pointer; border: none; background: none; }
   border-top: 1px solid var(--border);
   box-shadow: 0 -2px 16px rgba(99,118,175,.12);
   display: flex; align-items: flex-start; justify-content: space-around;
-  padding: 0 8px;
-  padding-bottom: var(--safe-b);
+  /* safe-l/r pour iPhone en paysage */
+  padding: 0 calc(8px + var(--safe-l)) var(--safe-b) calc(8px + var(--safe-r));
   z-index: 100;
+  /* Fond qui s'étend sous l'indicateur home */
+  padding-bottom: var(--safe-b);
 }
 .nav-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -127,7 +154,7 @@ button { cursor: pointer; border: none; background: none; }
 
 /* ── FAB ── */
 #fab {
-  position: fixed; bottom: calc(var(--nav) + var(--safe-b) + 12px); right: 20px;
+  position: fixed; bottom: calc(var(--nav) + var(--safe-b) + 12px); right: calc(20px + var(--safe-r));
   width: 56px; height: 56px; border-radius: 18px;
   background: var(--accent); color: #fff;
   font-size: 28px; line-height: 1;
@@ -525,17 +552,21 @@ button { cursor: pointer; border: none; background: none; }
    RESPONSIVE — Desktop (≥ 960px)
 ══════════════════════════════════════════════ */
 @media (min-width: 960px) {
-  :root { --nav: 0px; --safe-b: 0px; }
+  :root { --nav: 0px; --safe-b: 0px; --safe-t: 0px; }
 
-  body { overflow-x: hidden; }
+  /* Restaure le scroll normal sur desktop */
+  html, body { height: auto; overflow: auto; }
 
   #app {
     max-width: 1100px;
+    height: auto; overflow: visible;
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     min-height: 100dvh;
   }
+
+  #views-container { height: auto; overflow: visible; }
 
   /* Sidebar nav */
   #nav {
@@ -584,11 +615,15 @@ button { cursor: pointer; border: none; background: none; }
     flex: 1; min-width: 0;
   }
   .view {
+    height: auto; overflow: visible;
     min-height: 100dvh;
     padding-bottom: 40px;
   }
+  .view-body {
+    overflow: visible;
+    padding: 0 28px 40px;
+  }
   .view-header { padding: 28px 28px 0; }
-  .view-body { padding: 0 28px 28px; }
   .month-tabs { padding: 12px 28px; }
 
   /* FAB — coin bas droit de la zone contenu */
@@ -608,9 +643,118 @@ button { cursor: pointer; border: none; background: none; }
   .modal-overlay { align-items: center; }
   .modal-handle { display: none; }
 }
+
+/* ══════════════════════════════════════════════
+   LOCK SCREEN
+══════════════════════════════════════════════ */
+#lock-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding-top: var(--safe-t);
+  padding-bottom: var(--safe-b);
+  gap: 0;
+  transition: opacity .25s;
+}
+#lock-screen.hidden { opacity: 0; pointer-events: none; }
+
+.lock-icon {
+  width: 72px; height: 72px; border-radius: 22px;
+  background: var(--accent-pale);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.lock-title {
+  font-size: 22px; font-weight: 900; color: var(--text);
+  letter-spacing: -.4px; margin-bottom: 6px;
+}
+.lock-sub {
+  font-size: 14px; color: var(--text3); font-weight: 600;
+  margin-bottom: 32px; min-height: 20px; text-align: center;
+  transition: color .2s;
+}
+.lock-sub.error { color: var(--red); }
+
+.lock-dots {
+  display: flex; gap: 16px; margin-bottom: 40px;
+}
+.lock-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--border);
+  transition: background .15s, transform .15s;
+}
+.lock-dot.filled { background: var(--accent); transform: scale(1.15); }
+.lock-dot.error  { background: var(--red); }
+
+@keyframes lockShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-10px); }
+  40%      { transform: translateX(10px); }
+  60%      { transform: translateX(-8px); }
+  80%      { transform: translateX(8px); }
+}
+.lock-dots.shake { animation: lockShake .4s ease; }
+
+.lock-pad {
+  display: grid; grid-template-columns: repeat(3, 72px);
+  gap: 14px;
+}
+.lock-key {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .1s, background .1s;
+  user-select: none;
+}
+.lock-key:active { transform: scale(.92); background: var(--surface2); }
+.lock-key-num { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+.lock-key-alpha { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; color: var(--text3); text-transform: uppercase; }
+.lock-key.empty { background: none; border: none; box-shadow: none; cursor: default; }
+.lock-key.del { background: var(--surface2); }
 </style>
 </head>
 <body>
+
+<!-- ═══════════════ LOCK SCREEN ═══════════════ -->
+<div id="lock-screen">
+  <div class="lock-icon">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </div>
+  <div class="lock-title">MI Dépenses</div>
+  <div class="lock-sub" id="lock-sub">Entrez votre code</div>
+  <div class="lock-dots" id="lock-dots">
+    <div class="lock-dot" id="ld0"></div>
+    <div class="lock-dot" id="ld1"></div>
+    <div class="lock-dot" id="ld2"></div>
+    <div class="lock-dot" id="ld3"></div>
+  </div>
+  <div class="lock-pad">
+    <button class="lock-key" onclick="lockKey('1')"><span class="lock-key-num">1</span></button>
+    <button class="lock-key" onclick="lockKey('2')"><span class="lock-key-num">2</span><span class="lock-key-alpha">ABC</span></button>
+    <button class="lock-key" onclick="lockKey('3')"><span class="lock-key-num">3</span><span class="lock-key-alpha">DEF</span></button>
+    <button class="lock-key" onclick="lockKey('4')"><span class="lock-key-num">4</span><span class="lock-key-alpha">GHI</span></button>
+    <button class="lock-key" onclick="lockKey('5')"><span class="lock-key-num">5</span><span class="lock-key-alpha">JKL</span></button>
+    <button class="lock-key" onclick="lockKey('6')"><span class="lock-key-num">6</span><span class="lock-key-alpha">MNO</span></button>
+    <button class="lock-key" onclick="lockKey('7')"><span class="lock-key-num">7</span><span class="lock-key-alpha">PQRS</span></button>
+    <button class="lock-key" onclick="lockKey('8')"><span class="lock-key-num">8</span><span class="lock-key-alpha">TUV</span></button>
+    <button class="lock-key" onclick="lockKey('9')"><span class="lock-key-num">9</span><span class="lock-key-alpha">WXYZ</span></button>
+    <div class="lock-key empty"></div>
+    <button class="lock-key" onclick="lockKey('0')"><span class="lock-key-num">0</span></button>
+    <button class="lock-key del" onclick="lockDel()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+    </button>
+  </div>
+</div>
+
 <div id="app">
 
 <div id="views-container">
@@ -911,6 +1055,171 @@ const CAT_COLORS = {
   pourboires: {bg:'#fce7f3', text:'#831843', bar:'#f9a8d4'},
   divers:     {bg:'#f1f5f9', text:'#475569', bar:'#cbd5e1'},
 };
+
+// ══════════════════════════════════════════════
+//  LOCK / PIN
+// ══════════════════════════════════════════════
+let _lockInput   = '';
+let _lockMode    = 'check'; // 'check' | 'setup-first' | 'setup-confirm' | 'change-old' | 'change-new' | 'change-confirm'
+let _lockFirst   = '';      // premier code saisi lors d'une création
+
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('mi2026:' + pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function lockKey(d) {
+  if (_lockInput.length >= 4) return;
+  _lockInput += d;
+  updateLockDots();
+  if (_lockInput.length === 4) setTimeout(lockSubmit, 120);
+}
+
+function lockDel() {
+  _lockInput = _lockInput.slice(0, -1);
+  updateLockDots();
+}
+
+function updateLockDots(state) {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('ld' + i);
+    d.className = 'lock-dot' + (i < _lockInput.length ? ' filled' : '') + (state === 'error' ? ' error' : '');
+  }
+}
+
+async function lockSubmit() {
+  const pin = _lockInput;
+  _lockInput = '';
+
+  if (_lockMode === 'check') {
+    const stored = localStorage.getItem('mi_pin');
+    const h = await hashPin(pin);
+    if (h === stored) {
+      unlock();
+    } else {
+      lockError('Code incorrect');
+    }
+
+  } else if (_lockMode === 'setup-first') {
+    _lockFirst = pin;
+    _lockMode = 'setup-confirm';
+    setLockSub('Confirmez le code');
+    updateLockDots();
+
+  } else if (_lockMode === 'setup-confirm') {
+    if (pin === _lockFirst) {
+      const h = await hashPin(pin);
+      localStorage.setItem('mi_pin', h);
+      toast('Code PIN activé ✓');
+      unlock();
+    } else {
+      _lockFirst = '';
+      _lockMode = 'setup-first';
+      lockError('Codes différents — recommencez');
+    }
+
+  } else if (_lockMode === 'change-old') {
+    const stored = localStorage.getItem('mi_pin');
+    const h = await hashPin(pin);
+    if (h === stored) {
+      _lockMode = 'change-new';
+      setLockSub('Nouveau code');
+      updateLockDots();
+    } else {
+      lockError('Code incorrect');
+    }
+
+  } else if (_lockMode === 'change-new') {
+    _lockFirst = pin;
+    _lockMode = 'change-confirm';
+    setLockSub('Confirmez le nouveau code');
+    updateLockDots();
+
+  } else if (_lockMode === 'change-confirm') {
+    if (pin === _lockFirst) {
+      const h = await hashPin(pin);
+      localStorage.setItem('mi_pin', h);
+      document.getElementById('lock-screen').classList.add('hidden');
+      toast('Code PIN modifié ✓');
+      renderSettings();
+    } else {
+      _lockFirst = '';
+      _lockMode = 'change-new';
+      lockError('Codes différents — recommencez');
+    }
+  }
+}
+
+function lockError(msg) {
+  updateLockDots('error');
+  setLockSub(msg, true);
+  const dots = document.getElementById('lock-dots');
+  dots.classList.add('shake');
+  setTimeout(() => { dots.classList.remove('shake'); updateLockDots(); setLockSub(lockSubDefault()); }, 700);
+}
+
+function lockSubDefault() {
+  if (_lockMode === 'setup-first')    return 'Choisissez un code à 4 chiffres';
+  if (_lockMode === 'setup-confirm')  return 'Confirmez le code';
+  if (_lockMode === 'change-old')     return 'Entrez l\'ancien code';
+  if (_lockMode === 'change-new')     return 'Nouveau code à 4 chiffres';
+  if (_lockMode === 'change-confirm') return 'Confirmez le nouveau code';
+  return 'Entrez votre code';
+}
+
+function setLockSub(msg, isError) {
+  const el = document.getElementById('lock-sub');
+  el.textContent = msg;
+  el.className = 'lock-sub' + (isError ? ' error' : '');
+}
+
+function unlock() {
+  const ls = document.getElementById('lock-screen');
+  ls.classList.add('hidden');
+  setTimeout(() => ls.style.display = 'none', 260);
+}
+
+function initLock() {
+  const hasPin = !!localStorage.getItem('mi_pin');
+  const ls = document.getElementById('lock-screen');
+  if (!hasPin) {
+    ls.style.display = 'none'; // pas de PIN configuré → accès direct
+    return;
+  }
+  _lockMode = 'check';
+  setLockSub('Entrez votre code');
+  updateLockDots();
+}
+
+// Appel depuis les Réglages
+function setupPin() {
+  _lockMode = 'setup-first';
+  _lockFirst = '';
+  _lockInput = '';
+  const ls = document.getElementById('lock-screen');
+  ls.style.display = '';
+  ls.classList.remove('hidden');
+  setLockSub('Choisissez un code à 4 chiffres');
+  updateLockDots();
+}
+
+function changePin() {
+  _lockMode = 'change-old';
+  _lockFirst = '';
+  _lockInput = '';
+  const ls = document.getElementById('lock-screen');
+  ls.style.display = '';
+  ls.classList.remove('hidden');
+  setLockSub('Entrez l\'ancien code');
+  updateLockDots();
+}
+
+function disablePin() {
+  if (!confirm('Désactiver le code PIN ?')) return;
+  localStorage.removeItem('mi_pin');
+  toast('Code PIN désactivé');
+  renderSettings();
+}
 
 // ══════════════════════════════════════════════
 //  STATE
@@ -1617,6 +1926,32 @@ function renderSettings() {
     </div>
   </div>
 
+  <!-- Code PIN -->
+  <div class="settings-section">
+    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Sécurité — Code PIN
+    </div>
+    <div class="card">
+      ${localStorage.getItem('mi_pin') ? `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--green)">Code PIN activé</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" style="flex:1;min-height:44px" onclick="changePin()">Changer le code</button>
+          <button class="btn" style="flex:1;min-height:44px;color:var(--red);border:1px solid var(--border)" onclick="disablePin()">Désactiver</button>
+        </div>
+      ` : `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
+          <span style="font-size:13px;font-weight:700;color:var(--text3)">Aucun code configuré</span>
+        </div>
+        <button class="btn btn-accent" style="min-height:44px;width:100%" onclick="setupPin()">Activer un code PIN</button>
+      `}
+    </div>
+  </div>
+
   <!-- Taux de change -->
   <div class="settings-section">
     <div class="settings-section-title">💱 Taux de change</div>
@@ -2184,6 +2519,7 @@ function init() {
   load();
   populateCatSelect();
   render();
+  initLock();
   // Service Worker
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
