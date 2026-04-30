@@ -838,6 +838,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
+const APP_VERSION    = 'v10';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1960,6 +1961,9 @@ function renderSettings() {
   </div>
 
   <div style="height:20px"></div>
+  <div style="text-align:center;padding-bottom:8px;font-size:11px;color:var(--text3);font-family:var(--fm)">
+    MI Dépenses ${APP_VERSION} — Cache sw-${APP_VERSION}
+  </div>
   `;
   renderPayMethodsList();
 }
