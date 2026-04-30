@@ -535,7 +535,16 @@ button { cursor: pointer; border: none; background: none; }
   #nav  { max-width: 680px; }
   #fab  { right: calc(50% - 340px + 20px); }
 
-  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Les 6 stat-cards s'étalent sur 3 colonnes × 2 lignes */
+  .stat-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .stat-group > .stat-grid {
+    display: contents; /* les enfants participent directement à la grille parente */
+  }
 
   .view-header { padding-left: 28px; padding-right: 28px; }
   .view-body   { padding-left: 28px; padding-right: 28px; }
@@ -1444,10 +1453,14 @@ function renderDash() {
   const totalBankFees = spendExp.reduce((s,e)=>s+(e.bankFee||0),0);
   const totalPourboires = filtered.filter(e=>e.catId==='pourboires').reduce((s,e)=>s+expenseEur(e),0);
 
-  // Cash track
-  const cashRetire = filtered.filter(e=>e.catId==='cash').reduce((s,e)=>s+expenseEur(e),0);
-  const paidEspeces = filtered.filter(e=>e.payment==='Espèces').reduce((s,e)=>s+expenseEur(e),0);
-  const cashRestant = cashRetire - paidEspeces;
+  // Cash track — EUR
+  const cashEurRetire  = filtered.filter(e=>e.catId==='cash' && e.currency==='EUR').reduce((s,e)=>s+expenseEur(e),0);
+  const cashEurPaid    = filtered.filter(e=>e.payment==='Espèces' && e.currency==='EUR' && e.catId!=='cash').reduce((s,e)=>s+expenseEur(e),0);
+  const cashEurRestant = cashEurRetire - cashEurPaid;
+  // Cash track — TND
+  const cashTndRetire  = filtered.filter(e=>e.catId==='cash' && e.currency==='TND').reduce((s,e)=>s+expenseTnd(e),0);
+  const cashTndPaid    = filtered.filter(e=>e.payment==='Espèces' && e.currency==='TND' && e.catId!=='cash').reduce((s,e)=>s+expenseTnd(e),0);
+  const cashTndRestant = cashTndRetire - cashTndPaid;
 
   // Budget
   const budgetRef = filterMo==='all' ? BUDGET_TOTAL : BUDGET_MENSUEL;
@@ -1480,41 +1493,43 @@ function renderDash() {
 
   const body = document.getElementById('dash-body');
   body.innerHTML = `
-  <!-- Top stats -->
-  <div class="stat-grid" style="margin-top:12px">
-    <div class="stat-card accent-bg">
-      <div class="stat-label">Budget total</div>
-      <div class="stat-value mono">${dashFmt(budgetRef,0)}</div>
-      <div class="stat-small">${filterMo==='all'?'Mai – Août 2026':MONTH_LABELS[MONTHS.indexOf(filterMo)]}</div>
+  <!-- Top stats — wrapper pour desktop 3×2 -->
+  <div class="stat-group" style="margin-top:12px">
+    <div class="stat-grid">
+      <div class="stat-card accent-bg">
+        <div class="stat-label">Budget total</div>
+        <div class="stat-value mono">${dashFmt(budgetRef,0)}</div>
+        <div class="stat-small">${filterMo==='all'?'Mai – Août 2026':MONTH_LABELS[MONTHS.indexOf(filterMo)]}</div>
+      </div>
+      <div class="stat-card ${reste>=0?'green-bg':'red-bg'}">
+        <div class="stat-label">Reste</div>
+        <div class="stat-value mono">${dashFmt(reste,0)}</div>
+        <div class="stat-small">${pctUsed.toFixed(0)}% consommé</div>
+      </div>
     </div>
-    <div class="stat-card ${reste>=0?'green-bg':'red-bg'}">
-      <div class="stat-label">Reste</div>
-      <div class="stat-value mono">${dashFmt(reste,0)}</div>
-      <div class="stat-small">${pctUsed.toFixed(0)}% consommé</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Dépensé</div>
+        <div class="stat-value mono">${dashFmt(totalEur,2)}</div>
+        <div class="stat-small">${dashCurrency==='EUR'?fmtTnd(totalTnd,0):fmtEur(totalEur,2)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Nb dépenses</div>
+        <div class="stat-value">${nbDep}</div>
+        <div class="stat-small">Moy. ${dashFmt(avgDep,2)}</div>
+      </div>
     </div>
-  </div>
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">Dépensé</div>
-      <div class="stat-value mono">${dashFmt(totalEur,2)}</div>
-      <div class="stat-small">${dashCurrency==='EUR'?fmtTnd(totalTnd,0):fmtEur(totalEur,2)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Nb dépenses</div>
-      <div class="stat-value">${nbDep}</div>
-      <div class="stat-small">Moy. ${dashFmt(avgDep,2)}</div>
-    </div>
-  </div>
-  <div class="stat-grid">
-    <div class="stat-card green-bg">
-      <div class="stat-label">À rembourser</div>
-      <div class="stat-value mono">${dashFmt(totalRemb,2)}</div>
-      <div class="stat-small">Remboursable LEEM</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Frais bancaires</div>
-      <div class="stat-value mono">${dashFmt(totalBankFees,2)}</div>
-      <div class="stat-small">Pourboires: ${dashFmt(totalPourboires,2)}</div>
+    <div class="stat-grid">
+      <div class="stat-card green-bg">
+        <div class="stat-label">À rembourser</div>
+        <div class="stat-value mono">${dashFmt(totalRemb,2)}</div>
+        <div class="stat-small">Remboursable LEEM</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Frais bancaires</div>
+        <div class="stat-value mono">${dashFmt(totalBankFees,2)}</div>
+        <div class="stat-small">Pourboires: ${dashFmt(totalPourboires,2)}</div>
+      </div>
     </div>
   </div>
 
@@ -1593,20 +1608,43 @@ function renderDash() {
   </div>
 
   <!-- Cash tracking -->
-  <div class="card">
-    <div class="card-title">💵 Suivi Cash</div>
-    <div class="cash-row">
-      <span class="cash-row-label">Total retiré</span>
-      <span class="cash-row-val" style="color:var(--orange)">${dashFmt(cashRetire,2)}</span>
-    </div>
-    <div class="cash-row">
-      <span class="cash-row-label">Payé en espèces</span>
-      <span class="cash-row-val">${dashFmt(paidEspeces,2)}</span>
-    </div>
-    <div class="cash-row">
-      <span class="cash-row-label">Cash restant estimé</span>
-      <span class="cash-row-val" style="color:${cashRestant>=0?'var(--green)':'var(--red)'}">${dashFmt(cashRestant,2)}</span>
-    </div>
+  <div class="stat-grid">
+    ${cashEurRetire > 0 || cashEurPaid > 0 ? `
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">💶 Cash EUR</div>
+      <div class="cash-row">
+        <span class="cash-row-label">Retiré</span>
+        <span class="cash-row-val" style="color:var(--orange)">${fmtEur(cashEurRetire,2)}</span>
+      </div>
+      <div class="cash-row">
+        <span class="cash-row-label">Dépensé</span>
+        <span class="cash-row-val">${fmtEur(cashEurPaid,2)}</span>
+      </div>
+      <div class="cash-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+        <span class="cash-row-label">Restant</span>
+        <span class="cash-row-val" style="font-weight:800;color:${cashEurRestant>=0?'var(--green)':'var(--red)'}">${fmtEur(cashEurRestant,2)}</span>
+      </div>
+    </div>` : ''}
+    ${cashTndRetire > 0 || cashTndPaid > 0 ? `
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">🪙 Cash TND</div>
+      <div class="cash-row">
+        <span class="cash-row-label">Retiré</span>
+        <span class="cash-row-val" style="color:var(--orange)">${fmtTnd(cashTndRetire,2)}</span>
+      </div>
+      <div class="cash-row">
+        <span class="cash-row-label">Dépensé</span>
+        <span class="cash-row-val">${fmtTnd(cashTndPaid,2)}</span>
+      </div>
+      <div class="cash-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px">
+        <span class="cash-row-label">Restant</span>
+        <span class="cash-row-val" style="font-weight:800;color:${cashTndRestant>=0?'var(--green)':'var(--red)'}">${fmtTnd(cashTndRestant,2)}</span>
+      </div>
+    </div>` : ''}
+    ${cashEurRetire===0 && cashEurPaid===0 && cashTndRetire===0 && cashTndPaid===0 ? `
+    <div class="card" style="grid-column:1/-1;margin-bottom:0;color:var(--text3);font-size:13px;text-align:center">
+      Aucun retrait ou paiement en espèces
+    </div>` : ''}
   </div>
   `;
 }

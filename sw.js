@@ -1,5 +1,5 @@
-const CACHE = 'mi-depenses-v10';
-const CORE = ['./','./index.html','./manifest.json','./icon.svg'];
+const CACHE = 'mi-depenses-v11';
+// const CORE = ['./','./index.html','./manifest.json','./icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
