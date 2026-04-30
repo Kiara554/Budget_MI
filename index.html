@@ -2058,7 +2058,7 @@ function renderSettings() {
 // ══════════════════════════════════════════════
 //  SETTINGS ACTIONS
 // ══════════════════════════════════════════════
-function savePAT() {
+async function savePAT() {
   const pat = (document.getElementById('s-pat')?.value || '').trim();
   if (!pat) { toast('Token vide'); return; }
   if (!pat.startsWith('ghp_') && !pat.startsWith('github_pat_')) {
@@ -2068,13 +2068,38 @@ function savePAT() {
   settings.githubGistId = settings.githubGistId || '';
   localStorage.setItem('mi_settings', JSON.stringify(settings));
   renderSettings();
-  // Si un Gist ID existe déjà → synchro normale
-  // Sinon → on attend que l'utilisateur renseigne le Gist ID pour éviter de créer un doublon
+
   if (settings.githubGistId) {
-    toast('Token sauvegardé — synchronisation dans 4 s…');
+    // Gist ID déjà connu → synchro directe
+    toast('Token sauvegardé — synchronisation…');
     syncToGist();
   } else {
-    toast('Token sauvegardé. Renseigne le Gist ID pour récupérer tes données, ou sauvegarde pour créer un nouveau Gist.');
+    // Pas de Gist ID → chercher un Gist existant chez cet utilisateur
+    toast('Recherche d\'un Gist existant…');
+    setSyncState('syncing');
+    try {
+      const resp = await fetch('https://api.github.com/gists?per_page=100', {
+        headers: gistHeaders(),
+      });
+      if (resp.status === 401) { setSyncState('error'); toast('Token invalide'); return; }
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const gists = await resp.json();
+      const found = gists.find(g => g.files && g.files['mi-depenses.json']);
+      if (found) {
+        settings.githubGistId = found.id;
+        localStorage.setItem('mi_settings', JSON.stringify(settings));
+        renderSettings();
+        setSyncState('idle');
+        toast('Gist trouvé ! Chargement des données…');
+        loadFromGist();
+      } else {
+        setSyncState('idle');
+        toast('Aucun Gist existant — la première sauvegarde en créera un.');
+      }
+    } catch(e) {
+      setSyncState('error');
+      toast('Erreur recherche Gist : ' + e.message);
+    }
   }
 }
 
