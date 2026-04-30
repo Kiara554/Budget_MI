@@ -508,11 +508,112 @@ button { cursor: pointer; border: none; background: none; }
   display: flex; align-items: center; justify-content: center;
   background: var(--red-pale); color: var(--red); border: none; cursor: pointer;
 }
+/* ══════════════════════════════════════════════
+   RESPONSIVE — Tablette (≥ 640px)
+══════════════════════════════════════════════ */
+@media (min-width: 640px) {
+  #app { max-width: 680px; }
+  #nav { max-width: 680px; }
+  #fab { right: calc(50% - 340px + 20px); }
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .modal-sheet { max-width: 560px; margin: auto; border-radius: 20px; }
+  .modal-overlay { align-items: center; }
+  .modal-handle { display: none; }
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — Desktop (≥ 960px)
+══════════════════════════════════════════════ */
+@media (min-width: 960px) {
+  :root { --nav: 0px; --safe-b: 0px; }
+
+  body { overflow-x: hidden; }
+
+  #app {
+    max-width: 1100px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    min-height: 100dvh;
+  }
+
+  /* Sidebar nav */
+  #nav {
+    position: sticky; top: 0;
+    width: 220px; flex-shrink: 0;
+    height: 100dvh;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 28px 12px 24px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: 2px 0 16px rgba(99,118,175,.07);
+    gap: 4px;
+    /* override fixed positioning */
+    left: auto; bottom: auto;
+    transform: none;
+    max-width: none;
+  }
+  #nav::before {
+    content: 'MI Dépenses';
+    display: block;
+    font-size: 16px; font-weight: 900;
+    color: var(--accent);
+    padding: 0 12px 20px;
+    letter-spacing: -.3px;
+  }
+  .nav-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%; min-width: 0;
+    padding: 11px 14px;
+    border-radius: 12px;
+    gap: 10px;
+    font-size: 13px; font-weight: 700;
+    min-height: 44px;
+  }
+  .nav-svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .nav-btn .nav-icon { font-size: 18px; }
+  .nav-btn span:last-child { font-size: 13px; }
+  .nav-btn.active { background: var(--accent-pale); }
+
+  /* Main content */
+  #views-container {
+    flex: 1; min-width: 0;
+  }
+  .view {
+    min-height: 100dvh;
+    padding-bottom: 40px;
+  }
+  .view-header { padding: 28px 28px 0; }
+  .view-body { padding: 0 28px 28px; }
+  .month-tabs { padding: 12px 28px; }
+
+  /* FAB — coin bas droit de la zone contenu */
+  #fab {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    left: auto; transform: none;
+    width: 60px; height: 60px;
+    border-radius: 20px;
+  }
+
+  /* Stats 4 colonnes */
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Modal centrée */
+  .modal-sheet { max-width: 580px; margin: auto; border-radius: 20px; }
+  .modal-overlay { align-items: center; }
+  .modal-handle { display: none; }
+}
 </style>
 </head>
 <body>
 <div id="app">
 
+<div id="views-container">
 <!-- ═══════════════ VIEW: DASHBOARD ═══════════════ -->
 <div class="view active" id="view-dashboard">
   <div class="view-header">
@@ -564,6 +665,8 @@ button { cursor: pointer; border: none; background: none; }
   </div>
   <div class="view-body" id="settings-body"></div>
 </div>
+
+</div><!-- /views-container -->
 
 <!-- ═══════════════ NAV ═══════════════ -->
 <nav id="nav">
@@ -969,6 +1072,16 @@ async function loadFromGist() {
     setSyncState('error');
     toast('Erreur chargement Gist : ' + e.message);
   }
+}
+
+function saveGistId() {
+  const val = (document.getElementById('s-gist-id')?.value || '').trim();
+  if (!val) { toast('ID vide — rien changé'); return; }
+  settings.githubGistId = val;
+  localStorage.setItem('mi_settings', JSON.stringify(settings));
+  renderSettings();
+  toast('Gist ID mis à jour — chargement…');
+  loadFromGist();
 }
 
 async function disconnectGist() {
@@ -1488,13 +1601,19 @@ function renderSettings() {
         ${settings.githubPAT ? `<button class="btn" style="min-height:44px;color:var(--text3);border:1px solid var(--border)" onclick="disconnectGist()">Déconnecter</button>` : ''}
       </div>
 
-      ${settings.githubGistId ? `
-      <div class="gist-id-row">
-        <span class="gist-id-label">Gist ID</span>
-        <span class="gist-id-value">${settings.githubGistId.slice(0,12)}…</span>
-        <a href="https://gist.github.com/${settings.githubGistId}" target="_blank" rel="noopener"
-           style="font-size:11px;color:var(--accent);text-decoration:none">Voir ↗</a>
-      </div>` : ''}
+      <div class="form-group" style="margin-top:12px;margin-bottom:6px">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Gist ID (optionnel — pour pointer vers un Gist existant)</span>
+          ${settings.githubGistId ? `<a href="https://gist.github.com/${settings.githubGistId}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none">Voir ↗</a>` : ''}
+        </label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" type="text" id="s-gist-id"
+            value="${settings.githubGistId||''}"
+            placeholder="ex: 4a3b2c1d…"
+            autocomplete="off" spellcheck="false" style="font-family:var(--fm);font-size:12px">
+          <button class="btn btn-outline" style="flex-shrink:0;min-height:44px;padding:0 14px" onclick="saveGistId()">OK</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1613,9 +1732,15 @@ function savePAT() {
   settings.githubPAT = pat;
   settings.githubGistId = settings.githubGistId || '';
   localStorage.setItem('mi_settings', JSON.stringify(settings));
-  toast('Token sauvegardé — première synchronisation dans 4 s…');
   renderSettings();
-  syncToGist();
+  // Si un Gist ID existe déjà → synchro normale
+  // Sinon → on attend que l'utilisateur renseigne le Gist ID pour éviter de créer un doublon
+  if (settings.githubGistId) {
+    toast('Token sauvegardé — synchronisation dans 4 s…');
+    syncToGist();
+  } else {
+    toast('Token sauvegardé. Renseigne le Gist ID pour récupérer tes données, ou sauvegarde pour créer un nouveau Gist.');
+  }
 }
 
 function saveRate() {
