@@ -847,7 +847,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v10';
+const APP_VERSION    = 'v12';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1992,11 +1992,13 @@ function renderSettings() {
   <div class="settings-section">
     <div class="settings-section-title">💬 À propos de la synchro</div>
     <div class="sync-box">
-      <strong>Les données sont stockées localement</strong> dans ce navigateur uniquement.<br><br>
-      Pour transférer entre ton téléphone et ton ordinateur :<br>
-      • Utilise <strong>Exporter JSON</strong> puis <strong>Importer JSON</strong> sur l'autre appareil.<br>
-      • Ou clique sur <strong>Partager</strong> pour envoyer le fichier via n'importe quelle app (WhatsApp, mail, etc.).<br><br>
-      ⚠️ Cette app n'est <strong>pas connectée</strong> à Google Photos, iCloud ou tout autre service cloud. Les photos des reçus sont aussi stockées localement dans le JSON exporté.
+      <strong>Sauvegarde principale : GitHub Gist</strong> (section ci-dessus).<br>
+      Toutes les données sont synchronisées automatiquement — dépenses, réglages, budgets, moyens de paiement et code PIN.<br><br>
+      <strong>Sauvegarde manuelle (secours) :</strong><br>
+      • <strong>Exporter JSON</strong> → fichier complet avec photos des reçus<br>
+      • <strong>Importer JSON</strong> sur n'importe quel appareil<br>
+      • <strong>Partager</strong> → envoyer via WhatsApp, mail, etc.<br><br>
+      ℹ️ Les photos des reçus sont incluses dans le JSON exporté et dans le Gist (en base64).
     </div>
   </div>
 
