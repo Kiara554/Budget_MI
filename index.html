@@ -922,6 +922,48 @@ button { cursor: pointer; border: none; background: none; }
 <!-- Hidden input for adding photo after the fact -->
 <input type="file" id="photo-input-after" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAfter(event)">
 
+<!-- Modal Gains -->
+<div class="modal-overlay" id="modal-gain" onclick="handleOverlayClick(event,'modal-gain')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-gain-title">Nouvelle entrée</div>
+      <button class="modal-close" onclick="closeModal('modal-gain')" aria-label="Fermer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="g-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="g-type">
+          ${GAIN_TYPES ? '' : ''}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" type="text" id="g-desc" placeholder="Ex: Salaire juin, remboursement Paul…">
+      </div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Montant</label>
+          <input class="form-input" type="number" id="g-amount" inputmode="decimal" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Devise</label>
+          <select class="form-select" id="g-currency">
+            <option value="EUR">€ EUR</option>
+            <option value="TND">TND</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-accent" style="width:100%;min-height:48px" onclick="submitGain()">💾 Enregistrer</button>
+      <div style="height:8px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -936,13 +978,20 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v19';
+const APP_VERSION    = 'v20';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
 const MONTHS = ['mai','juin','juil','aout'];
 const MONTH_LABELS = ['Mai','Juin','Juil','Août'];
 const MONTH_DATES = ['2026-05','2026-06','2026-07','2026-08'];
+
+const GAIN_TYPES = [
+  {id:'remb_perso', em:'💸', lbl:'Remboursement perso'},
+  {id:'salaire',    em:'💼', lbl:'Salaire / indemnité'},
+  {id:'aide',       em:'🎁', lbl:'Aide / bourse'},
+  {id:'autre',      em:'📥', lbl:'Autre entrée'},
+];
 
 const CATS = [
   {id:'logement',  ic:'logement',  em:'🏠', lbl:'Logement',            budget:900,  plafond:1440, type:'mensuel'},
@@ -1227,6 +1276,7 @@ function disablePin() {
 // ══════════════════════════════════════════════
 let expenses    = [];
 let withdrawals = [];
+let gains       = [];
 let settings  = { rate: 3.38, budgets: {}, paymentMethods: null, githubPAT: '', githubGistId: '' };
 let curView   = 'dashboard';
 let filterMo    = 'all';
@@ -1245,12 +1295,14 @@ let editingId = null;
 function save() {
   localStorage.setItem('mi_expenses',    JSON.stringify(expenses));
   localStorage.setItem('mi_withdrawals', JSON.stringify(withdrawals));
+  localStorage.setItem('mi_gains',       JSON.stringify(gains));
   localStorage.setItem('mi_settings',    JSON.stringify(settings));
   debouncedGistSync();
 }
 function load() {
   try { expenses    = JSON.parse(localStorage.getItem('mi_expenses'))    || []; } catch(e){ expenses=[]; }
   try { withdrawals = JSON.parse(localStorage.getItem('mi_withdrawals')) || []; } catch(e){ withdrawals=[]; }
+  try { gains       = JSON.parse(localStorage.getItem('mi_gains'))       || []; } catch(e){ gains=[]; }
   try {
     const defaults = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
     settings = Object.assign(defaults, JSON.parse(localStorage.getItem('mi_settings'))||{});
@@ -1333,6 +1385,7 @@ function gistPayload() {
     pin: localStorage.getItem('mi_pin') || null, // hash SHA-256, jamais le code en clair
     expenses,
     withdrawals,
+    gains,
   };
   return JSON.stringify({ files: { 'mi-depenses.json': { content: JSON.stringify(backup, null, 2) } } });
 }
@@ -1397,6 +1450,7 @@ async function loadFromGist() {
     const d = JSON.parse(raw);
     if (Array.isArray(d.expenses))    expenses    = d.expenses;
     if (Array.isArray(d.withdrawals)) withdrawals = d.withdrawals;
+    if (Array.isArray(d.gains))       gains       = d.gains;
     if (d.settings) {
       settings = {
         ...settings,
@@ -1579,6 +1633,11 @@ function renderDash() {
   const totalBankFees = spendExp.reduce((s,e)=>s+(e.bankFee||0),0);
   const totalPourboires = filtered.filter(e=>e.catId==='pourboires').reduce((s,e)=>s+expenseEur(e),0);
 
+  // Gains
+  const filteredGains = filterMo==='all' ? gains : gains.filter(g => g.date.startsWith(MONTH_DATES[MONTHS.indexOf(filterMo)]));
+  const totalGains    = filteredGains.reduce((s,g) => s + gainEur(g), 0);
+  const soldeNet      = totalGains - totalEur;
+
   // Cash track — EUR (nouveau système withdrawals + rétrocompat catId='cash')
   const cashEurRetire  = withdrawals.filter(w=>w.currency==='EUR').reduce((s,w)=>s+Number(w.amount),0)
                        + filtered.filter(e=>e.catId==='cash' && e.currency==='EUR').reduce((s,e)=>s+expenseEur(e),0);
@@ -1746,6 +1805,48 @@ function renderDash() {
         </div>`;
       }).join('')}
     </div>
+  </div>
+
+  <!-- Gains & Solde net -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Gains & Solde net</div>
+      <button onclick="openGainModal()" style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Entrée
+      </button>
+    </div>
+    <div class="stat-grid" style="margin-bottom:${filteredGains.length>0?'12':'0'}px">
+      <div class="stat-card green-bg">
+        <div class="stat-label">Total gains</div>
+        <div class="stat-value mono">${dashFmt(totalGains,2)}</div>
+        <div class="stat-small">${filteredGains.length} entrée${filteredGains.length!==1?'s':''}</div>
+      </div>
+      <div class="stat-card ${soldeNet<=0?'red-bg':'green-bg'}">
+        <div class="stat-label">Solde net</div>
+        <div class="stat-value mono">${soldeNet>0?'+':''}${dashFmt(soldeNet,2)}</div>
+        <div class="stat-small">${soldeNet<=0?'Dépenses > gains':'Gains > dépenses'}</div>
+      </div>
+    </div>
+    ${filteredGains.length===0 ? `
+      <div style="text-align:center;color:var(--text3);font-size:13px;padding:8px 0">
+        Aucun gain enregistré — appuie sur <strong>+ Entrée</strong>
+      </div>` :
+      filteredGains.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(g=>{
+        const gt = GAIN_TYPES.find(t=>t.id===g.type)||GAIN_TYPES[3];
+        return `<div class="cash-row">
+          <div>
+            <div style="font-size:13px;font-weight:700">${gt.em} ${gt.lbl}${g.desc?` · <span style="font-weight:400;color:var(--text2)">${escHtml(g.desc)}</span>`:''}</div>
+            <div style="font-size:11px;color:var(--text3)">${formatDate(g.date)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:15px;font-weight:800;font-family:var(--fm);color:var(--green)">+${dashFmt(gainEur(g),2)}</span>
+            <button onclick="openEditGain('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:15px" title="Modifier">✎</button>
+            <button onclick="deleteGain('${g.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:16px" title="Supprimer">✕</button>
+          </div>
+        </div>`;
+      }).join('')
+    }
   </div>
 
   <!-- Cash tracking -->
@@ -3119,6 +3220,78 @@ function exportRembExcel() {
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
   toast(`Note de frais exportée — ${sorted.length} dépenses ✓`);
+}
+
+// ══════════════════════════════════════════════
+//  GAINS
+// ══════════════════════════════════════════════
+function gainEur(g) {
+  if (g.currency === 'EUR') return Number(g.amount);
+  if (g.currency === 'TND') return Number(g.amount) / (settings.rate || 3.38);
+  return Number(g.amount);
+}
+
+let editingGainId = null;
+
+function openGainModal() {
+  editingGainId = null;
+  document.getElementById('modal-gain-title').textContent = 'Nouvelle entrée';
+  document.getElementById('g-date').value    = new Date().toISOString().slice(0,10);
+  document.getElementById('g-desc').value    = '';
+  document.getElementById('g-amount').value  = '';
+  document.getElementById('g-currency').value = 'EUR';
+  populateGainTypeSelect();
+  openModal('modal-gain');
+}
+
+function openEditGain(id) {
+  const g = gains.find(x => x.id === id);
+  if (!g) return;
+  editingGainId = id;
+  document.getElementById('modal-gain-title').textContent = 'Modifier l\'entrée';
+  document.getElementById('g-date').value     = g.date;
+  document.getElementById('g-desc').value     = g.desc || '';
+  document.getElementById('g-amount').value   = g.amount;
+  document.getElementById('g-currency').value = g.currency || 'EUR';
+  populateGainTypeSelect(g.type);
+  openModal('modal-gain');
+}
+
+function populateGainTypeSelect(selected) {
+  const sel = document.getElementById('g-type');
+  sel.innerHTML = GAIN_TYPES.map(t =>
+    `<option value="${t.id}" ${t.id===(selected||GAIN_TYPES[0].id)?'selected':''}>${t.em} ${t.lbl}</option>`
+  ).join('');
+}
+
+function submitGain() {
+  const date   = document.getElementById('g-date').value;
+  const amount = parseFloat(document.getElementById('g-amount').value);
+  if (!date || isNaN(amount) || amount <= 0) { toast('Remplis la date et le montant'); return; }
+  const entry = {
+    date,
+    amount,
+    currency: document.getElementById('g-currency').value,
+    type:     document.getElementById('g-type').value,
+    desc:     document.getElementById('g-desc').value.trim(),
+  };
+  if (editingGainId) {
+    const idx = gains.findIndex(g => g.id === editingGainId);
+    if (idx !== -1) gains[idx] = { ...gains[idx], ...entry };
+    toast('Entrée modifiée ✓');
+  } else {
+    gains.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,5), ...entry });
+    toast('Entrée enregistrée ✓');
+  }
+  editingGainId = null;
+  save(); closeModal('modal-gain'); renderDash();
+}
+
+function deleteGain(id) {
+  if (!confirm('Supprimer cette entrée ?')) return;
+  gains = gains.filter(g => g.id !== id);
+  save(); renderDash();
+  toast('Entrée supprimée');
 }
 
 function toggleTheme() {
