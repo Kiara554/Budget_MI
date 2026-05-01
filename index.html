@@ -1910,10 +1910,19 @@ function renderRemb() {
     ? allRemb
     : allRemb.filter(e => getMonth(e) === MONTH_DATES[MONTHS.indexOf(rembMo)]);
 
-  const totalRemb  = rembExp.reduce((s,e)=>s+expenseEur(e),0);
-  const avecRecu   = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const sansRecu   = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const totalRemb    = rembExp.reduce((s,e)=>s+expenseEur(e),0);
+  const avecRecu     = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const sansRecu     = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
   const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
+
+  // Total dépensé (toutes catégories, hors cash) pour calculer la proportion OPCO
+  const allExpMo = rembMo === 'all'
+    ? expenses.filter(e=>e.catId!=='cash')
+    : expenses.filter(e=>e.catId!=='cash' && getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
+  const totalDepense    = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
+  const montantRecup    = Math.min(totalRemb, plafondTotal);
+  const pctRemb         = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
+  const pctPlafond      = plafondTotal>0 ? totalRemb/plafondTotal*100 : 0;
 
   // Totaux par mois (pour le récap global)
   const monthlyTotals = MONTH_DATES.map(ym =>
@@ -1942,6 +1951,35 @@ function renderRemb() {
       <div class="stat-label">Avec reçu</div>
       <div class="stat-value mono">${fmtEur(avecRecu,2)}</div>
       <div class="stat-small">Sans reçu: ${fmtEur(sansRecu,2)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Proportion remboursable OPCO</div>
+
+    <div class="prog-wrap">
+      <div class="prog-header">
+        <span class="prog-label">Remboursable / Total dépensé</span>
+        <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(totalDepense,0)}</span>
+      </div>
+      <div class="prog-bar-bg">
+        <div class="prog-bar" style="width:${Math.min(pctRemb,100).toFixed(1)}%;background:var(--accent)"></div>
+      </div>
+      <div class="prog-sub"><span>${pctRemb.toFixed(0)}% de tes dépenses sont remboursables</span></div>
+    </div>
+
+    <div class="prog-wrap" style="margin-top:10px">
+      <div class="prog-header">
+        <span class="prog-label">Plafond OPCO utilisé</span>
+        <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(plafondTotal,0)}</span>
+      </div>
+      <div class="prog-bar-bg">
+        <div class="prog-bar" style="width:${Math.min(pctPlafond,100).toFixed(1)}%;background:${pctPlafond<70?'var(--green)':pctPlafond<90?'var(--orange)':'var(--red)'}"></div>
+      </div>
+      <div class="prog-sub">
+        <span>${pctPlafond.toFixed(0)}% du plafond atteint</span>
+        <span style="font-weight:700;color:var(--green)">Récupérable : ${fmtEur(montantRecup,2)}</span>
+      </div>
     </div>
   </div>
 
