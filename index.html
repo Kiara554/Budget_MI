@@ -760,6 +760,7 @@ button { cursor: pointer; border: none; background: none; }
     <div class="view-sub">Suivi des remboursements LEEM</div>
     <div class="filter-row" id="remb-filter-row" style="padding:6px 0 4px"></div>
   </div>
+  <div class="month-tabs" id="remb-tabs"></div>
   <div class="view-body" id="remb-body"></div>
 </div>
 
@@ -1233,6 +1234,7 @@ let dashCurrency = 'EUR';
 let search    = '';
 let catFilter = 'all';
 let rembFilter  = 'all';
+let rembMo      = 'all';
 let photoData = null;
 let detailId  = null;
 let editingId = null;
@@ -1879,7 +1881,10 @@ function onSearch(v) { search=v; renderList(); }
 //  RENDER: REMBOURSEMENTS
 // ══════════════════════════════════════════════
 function renderRemb() {
-  // Chips de filtre
+  // Onglets mois
+  buildTabs('remb-tabs', rembMo, `(m)=>{rembMo=m;renderRemb()}`);
+
+  // Chips de filtre statut
   const filterCfg = [
     { id:'all',      label:'Tout',        color:'' },
     { id:'pending',  label:'En attente',  color:'var(--orange)' },
@@ -1897,12 +1902,23 @@ function renderRemb() {
     ).join('');
   }
 
-  const rembExp = expenses.filter(e=>e.remb);
-  const totalRemb     = rembExp.reduce((s,e)=>s+expenseEur(e),0);
-  const avecRecu      = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const sansRecu      = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const dejaRembourse = 0;
-  const plafondTotal  = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
+  // Toutes les dépenses remboursables
+  const allRemb = expenses.filter(e=>e.remb);
+
+  // Filtre par mois
+  const rembExp = rembMo === 'all'
+    ? allRemb
+    : allRemb.filter(e => getMonth(e) === MONTH_DATES[MONTHS.indexOf(rembMo)]);
+
+  const totalRemb  = rembExp.reduce((s,e)=>s+expenseEur(e),0);
+  const avecRecu   = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const sansRecu   = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
+
+  // Totaux par mois (pour le récap global)
+  const monthlyTotals = MONTH_DATES.map(ym =>
+    allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0)
+  );
 
   // Per-category
   const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
@@ -1918,9 +1934,9 @@ function renderRemb() {
   body.innerHTML = `
   <div class="remb-summary" style="margin-top:12px">
     <div class="stat-card accent-bg">
-      <div class="stat-label">Total remboursable</div>
+      <div class="stat-label">${rembMo==='all'?'Total stage':'Ce mois'}</div>
       <div class="stat-value mono">${fmtEur(totalRemb,2)}</div>
-      <div class="stat-small">Plafond total: ${fmtEur(plafondTotal,0)}</div>
+      <div class="stat-small">Plafond: ${fmtEur(plafondTotal,0)}</div>
     </div>
     <div class="stat-card green-bg">
       <div class="stat-label">Avec reçu</div>
@@ -1928,6 +1944,29 @@ function renderRemb() {
       <div class="stat-small">Sans reçu: ${fmtEur(sansRecu,2)}</div>
     </div>
   </div>
+
+  ${rembMo==='all' ? `
+  <div class="card">
+    <div class="card-title">Récap par mois</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${MONTH_DATES.map((ym,i)=>{
+        const v = monthlyTotals[i];
+        const pct = plafondTotal>0 ? Math.min(v/plafondTotal*100,100) : 0;
+        const col = ['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
+        return `<div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${MONTH_LABELS[i]}</span>
+            <span style="font-size:13px;font-weight:800;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
+          </div>
+          ${v>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${pct}%;background:${col}"></div></div>`:''}
+        </div>`;
+      }).join('')}
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:4px">
+        <span style="font-size:13px;font-weight:800;color:var(--text)">Total stage</span>
+        <span style="font-size:15px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(monthlyTotals.reduce((s,v)=>s+v,0),2)}</span>
+      </div>
+    </div>
+  </div>` : ''}
 
   <div class="card">
     <div class="card-title">Détail par catégorie</div>
