@@ -1,0 +1,20 @@
+TODO — MI Dépenses
+==================
+
+FONCTIONNEL
+-----------
+[ ] Export CSV ou PDF (dossier remboursement LEEM)
+[ ] Modifier un retrait (actuellement delete/recréer seulement)
+[ ] Budgets configurables depuis l'app (BUDGET_MENSUEL, BUDGET_PREPA actuellement en dur dans le code)
+
+UX
+--
+[ ] Mode sombre
+[ ] Tri / filtre dans la vue Remboursements (par statut, par catégorie)
+[ ] Retour visuel clair sur mobile pour la sync Gist
+
+TECHNIQUE
+---------
+[ ] Photos base64 dans localStorage → risque saturation (~5-10 Mo max) → envisager stockage externe
+[ ] Sync avec Google Photos (sauvegarde des justificatifs)
+[ ] Corriger mismatch version SW v18 / APP_VERSION v17
