@@ -1033,7 +1033,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v23';
+const APP_VERSION    = 'v24';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1341,6 +1341,7 @@ let search    = '';
 let catFilter = 'all';
 let rembFilter  = 'all';
 let rembMo      = 'all';
+let rembSubView = 'synthese'; // 'synthese' | 'depenses'
 let cashMo      = 'all';
 let photoData = null;
 let detailId  = null;
@@ -2087,22 +2088,40 @@ function onSearch(v) { search=v; renderList(); }
 //  RENDER: REMBOURSEMENTS
 // ══════════════════════════════════════════════
 function renderRemb() {
-  // Onglets mois
   buildTabs('remb-tabs', rembMo, `(m)=>{rembMo=m;renderRemb()}`);
 
-  // Chips de filtre statut
-  const allRembForFilter = expenses.filter(e => e.remb);
-  const sansJustifCount  = allRembForFilter.filter(e => !e.recu && !e.photo).length;
-  const filterCfg = [
-    { id:'all',         label:'Tout',                                                  color:'' },
-    { id:'sans-justif', label:`⚠️ Sans justificatif${sansJustifCount?` (${sansJustifCount})`:''}`, color:'var(--red)' },
-    { id:'pending',     label:'En attente',  color:'var(--orange)' },
-    { id:'soumis',      label:'Soumis',      color:'var(--accent)' },
-    { id:'valide',      label:'Validé',      color:'var(--green)'  },
-    { id:'refuse',      label:'Refusé',      color:'var(--red)'    },
-  ];
+  // Données communes
+  const allRemb      = expenses.filter(e=>e.remb);
+  const sansJustifCount = allRemb.filter(e=>!e.recu&&!e.photo).length;
+  const rembExp      = rembMo==='all' ? allRemb : allRemb.filter(e=>getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
+  const totalRemb    = rembExp.reduce((s,e)=>s+expenseEur(e),0);
+  const avecRecu     = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const sansRecu     = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
+  const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
+  const allExpMo     = rembMo==='all' ? expenses.filter(e=>e.catId!=='cash') : expenses.filter(e=>e.catId!=='cash'&&getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
+  const totalDepense = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
+  const montantRecup = Math.min(totalRemb, plafondTotal);
+  const pctRemb      = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
+  const pctPlafond   = plafondTotal>0 ? totalRemb/plafondTotal*100 : 0;
+  const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
+  const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
+    const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
+    const plafond=getPlafond(c.id), quota=Math.min(total,plafond);
+    return {c,total,plafond,quota,quotaRestant:plafond-quota};
+  });
+
+  // Mise à jour filtre chips (remb-filter-row) — visible uniquement en vue dépenses
   const filterRow = document.getElementById('remb-filter-row');
-  if (filterRow) {
+  if (filterRow) filterRow.style.display = rembSubView==='depenses' ? '' : 'none';
+  if (filterRow && rembSubView==='depenses') {
+    const filterCfg = [
+      { id:'all',         label:'Tout', color:'' },
+      { id:'sans-justif', label:`⚠️ Sans justif${sansJustifCount?` (${sansJustifCount})`:''}`, color:'var(--red)' },
+      { id:'pending',     label:'En attente',  color:'var(--orange)' },
+      { id:'soumis',      label:'Soumis',      color:'var(--accent)' },
+      { id:'valide',      label:'Validé',      color:'var(--green)'  },
+      { id:'refuse',      label:'Refusé',      color:'var(--red)'    },
+    ];
     filterRow.innerHTML = filterCfg.map(f =>
       `<button class="filter-chip ${rembFilter===f.id?'active':''}"
         onclick="rembFilter='${f.id}';renderRemb()"
@@ -2111,143 +2130,119 @@ function renderRemb() {
     ).join('');
   }
 
-  // Toutes les dépenses remboursables
-  const allRemb = expenses.filter(e=>e.remb);
-
-  // Filtre par mois
-  const rembExp = rembMo === 'all'
-    ? allRemb
-    : allRemb.filter(e => getMonth(e) === MONTH_DATES[MONTHS.indexOf(rembMo)]);
-
-  const totalRemb    = rembExp.reduce((s,e)=>s+expenseEur(e),0);
-  const avecRecu     = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const sansRecu     = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
-
-  // Total dépensé (toutes catégories, hors cash) pour calculer la proportion OPCO
-  const allExpMo = rembMo === 'all'
-    ? expenses.filter(e=>e.catId!=='cash')
-    : expenses.filter(e=>e.catId!=='cash' && getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
-  const totalDepense    = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
-  const montantRecup    = Math.min(totalRemb, plafondTotal);
-  const pctRemb         = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
-  const pctPlafond      = plafondTotal>0 ? totalRemb/plafondTotal*100 : 0;
-
-  // Totaux par mois (pour le récap global)
-  const monthlyTotals = MONTH_DATES.map(ym =>
-    allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0)
-  );
-
-  // Per-category
-  const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
-    const exps = rembExp.filter(e=>e.catId===c.id);
-    const total = exps.reduce((s,e)=>s+expenseEur(e),0);
-    const plafond = getPlafond(c.id);
-    const quota = Math.min(total, plafond);
-    const quotaRestant = plafond - quota;
-    return { c, total, plafond, quota, quotaRestant };
-  });
+  // Sous-onglets
+  const subTabs = `
+  <div style="display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px;margin-top:12px;margin-bottom:4px">
+    <button onclick="rembSubView='synthese';renderRemb()" style="flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
+      background:${rembSubView==='synthese'?'var(--surface)':'transparent'};
+      color:${rembSubView==='synthese'?'var(--accent)':'var(--text3)'};
+      box-shadow:${rembSubView==='synthese'?'0 1px 4px rgba(0,0,0,.08)':'none'}">
+      📊 Synthèse
+    </button>
+    <button onclick="rembSubView='depenses';renderRemb()" style="flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
+      background:${rembSubView==='depenses'?'var(--surface)':'transparent'};
+      color:${rembSubView==='depenses'?'var(--accent)':'var(--text3)'};
+      box-shadow:${rembSubView==='depenses'?'0 1px 4px rgba(0,0,0,.08)':'none'}">
+      🧾 Dépenses
+      ${sansJustifCount>0?`<span style="margin-left:4px;background:var(--red);color:#fff;font-size:10px;font-weight:900;padding:1px 6px;border-radius:20px">${sansJustifCount}</span>`:''}
+    </button>
+  </div>`;
 
   const body = document.getElementById('remb-body');
-  body.innerHTML = `
-  <div class="remb-summary" style="margin-top:12px">
-    <div class="stat-card accent-bg">
-      <div class="stat-label">${rembMo==='all'?'Total stage':'Ce mois'}</div>
-      <div class="stat-value mono">${fmtEur(totalRemb,2)}</div>
-      <div class="stat-small">Plafond: ${fmtEur(plafondTotal,0)}</div>
-    </div>
-    <div class="stat-card green-bg">
-      <div class="stat-label">Avec reçu</div>
-      <div class="stat-value mono">${fmtEur(avecRecu,2)}</div>
-      <div class="stat-small">Sans reçu: ${fmtEur(sansRecu,2)}</div>
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="card-title">Proportion remboursable OPCO</div>
-
-    <div class="prog-wrap">
-      <div class="prog-header">
-        <span class="prog-label">Remboursable / Total dépensé</span>
-        <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(totalDepense,0)}</span>
+  if (rembSubView === 'synthese') {
+    body.innerHTML = subTabs + `
+    <div class="remb-summary" style="margin-top:8px">
+      <div class="stat-card accent-bg">
+        <div class="stat-label">${rembMo==='all'?'Total stage':'Ce mois'}</div>
+        <div class="stat-value mono">${fmtEur(totalRemb,2)}</div>
+        <div class="stat-small">Plafond: ${fmtEur(plafondTotal,0)}</div>
       </div>
-      <div class="prog-bar-bg">
-        <div class="prog-bar" style="width:${Math.min(pctRemb,100).toFixed(1)}%;background:var(--accent)"></div>
+      <div class="stat-card green-bg">
+        <div class="stat-label">Avec reçu</div>
+        <div class="stat-value mono">${fmtEur(avecRecu,2)}</div>
+        <div class="stat-small">Sans reçu: ${fmtEur(sansRecu,2)}</div>
       </div>
-      <div class="prog-sub"><span>${pctRemb.toFixed(0)}% de tes dépenses sont remboursables</span></div>
     </div>
 
-    <div class="prog-wrap" style="margin-top:10px">
-      <div class="prog-header">
-        <span class="prog-label">Plafond OPCO utilisé</span>
-        <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(plafondTotal,0)}</span>
-      </div>
-      <div class="prog-bar-bg">
-        <div class="prog-bar" style="width:${Math.min(pctPlafond,100).toFixed(1)}%;background:${pctPlafond<70?'var(--green)':pctPlafond<90?'var(--orange)':'var(--red)'}"></div>
-      </div>
-      <div class="prog-sub">
-        <span>${pctPlafond.toFixed(0)}% du plafond atteint</span>
-        <span style="font-weight:700;color:var(--green)">Récupérable : ${fmtEur(montantRecup,2)}</span>
-      </div>
-    </div>
-  </div>
-
-  ${rembMo==='all' ? `
-  <div class="card">
-    <div class="card-title">Récap par mois</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      ${MONTH_DATES.map((ym,i)=>{
-        const v = monthlyTotals[i];
-        const pct = plafondTotal>0 ? Math.min(v/plafondTotal*100,100) : 0;
-        const col = ['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
-        return `<div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:13px;font-weight:700;color:var(--text)">${MONTH_LABELS[i]}</span>
-            <span style="font-size:13px;font-weight:800;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
-          </div>
-          ${v>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${pct}%;background:${col}"></div></div>`:''}
-        </div>`;
-      }).join('')}
-      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:4px">
-        <span style="font-size:13px;font-weight:800;color:var(--text)">Total stage</span>
-        <span style="font-size:15px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(monthlyTotals.reduce((s,v)=>s+v,0),2)}</span>
-      </div>
-    </div>
-  </div>` : ''}
-
-  <div class="card">
-    <div class="card-title">Détail par catégorie</div>
-    ${catRemb.map(({c,total,plafond,quota,quotaRestant})=>`
-      <div class="remb-row">
-        <div class="remb-row-left">
-          <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(c.id,16)} ${c.lbl}</div>
-          <div class="remb-row-sub">Dépensé: ${fmtEur(total,2)} · Plafond: ${fmtEur(plafond,0)}</div>
+    <div class="card">
+      <div class="card-title">Proportion remboursable OPCO</div>
+      <div class="prog-wrap">
+        <div class="prog-header">
+          <span class="prog-label">Remboursable / Total dépensé</span>
+          <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(totalDepense,0)}</span>
         </div>
-        <div class="remb-row-right">
-          <div class="remb-row-val">${fmtEur(quota,2)}</div>
-          <div class="remb-row-quota" style="color:${quotaRestant>0?'var(--green)':'var(--text3)'}">
-            Quota restant: ${fmtEur(quotaRestant,0)}
-          </div>
+        <div class="prog-bar-bg"><div class="prog-bar" style="width:${Math.min(pctRemb,100).toFixed(1)}%;background:var(--accent)"></div></div>
+        <div class="prog-sub"><span>${pctRemb.toFixed(0)}% de tes dépenses sont remboursables</span></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:10px">
+        <div class="prog-header">
+          <span class="prog-label">Plafond OPCO utilisé</span>
+          <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(plafondTotal,0)}</span>
+        </div>
+        <div class="prog-bar-bg"><div class="prog-bar" style="width:${Math.min(pctPlafond,100).toFixed(1)}%;background:${pctPlafond<70?'var(--green)':pctPlafond<90?'var(--orange)':'var(--red)'}"></div></div>
+        <div class="prog-sub">
+          <span>${pctPlafond.toFixed(0)}% du plafond atteint</span>
+          <span style="font-weight:700;color:var(--green)">Récupérable : ${fmtEur(montantRecup,2)}</span>
         </div>
       </div>
-    `).join('')}
-  </div>
+    </div>
 
-  ${(()=>{
+    ${rembMo==='all' ? `
+    <div class="card">
+      <div class="card-title">Récap par mois</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${MONTH_DATES.map((ym,i)=>{
+          const v=monthlyTotals[i], pct=plafondTotal>0?Math.min(v/plafondTotal*100,100):0;
+          const col=['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
+          return `<div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${MONTH_LABELS[i]}</span>
+              <span style="font-size:13px;font-weight:800;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
+            </div>
+            ${v>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${pct}%;background:${col}"></div></div>`:''}
+          </div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:4px">
+          <span style="font-size:13px;font-weight:800;color:var(--text)">Total stage</span>
+          <span style="font-size:15px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(monthlyTotals.reduce((s,v)=>s+v,0),2)}</span>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="card">
+      <div class="card-title">Détail par catégorie</div>
+      ${catRemb.map(({c,total,plafond,quota,quotaRestant})=>`
+        <div class="remb-row">
+          <div class="remb-row-left">
+            <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(c.id,16)} ${c.lbl}</div>
+            <div class="remb-row-sub">Dépensé: ${fmtEur(total,2)} · Plafond: ${fmtEur(plafond,0)}</div>
+          </div>
+          <div class="remb-row-right">
+            <div class="remb-row-val">${fmtEur(quota,2)}</div>
+            <div class="remb-row-quota" style="color:${quotaRestant>0?'var(--green)':'var(--text3)'}">Quota restant: ${fmtEur(quotaRestant,0)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+
+  } else {
+    // ── Vue DÉPENSES ──
     const matchFilter = e => {
-      if (rembFilter === 'all')         return true;
-      if (rembFilter === 'sans-justif') return !e.recu && !e.photo;
-      if (rembFilter === 'pending')     return !e.rembDate && !e.rembStatus;
-      if (rembFilter === 'soumis')      return e.rembDate && !e.rembStatus;
-      if (rembFilter === 'valide')      return e.rembStatus === 'validé';
-      if (rembFilter === 'refuse')      return e.rembStatus === 'refusé';
+      if (rembFilter==='all')         return true;
+      if (rembFilter==='sans-justif') return !e.recu && !e.photo;
+      if (rembFilter==='pending')     return !e.rembDate && !e.rembStatus;
+      if (rembFilter==='soumis')      return e.rembDate && !e.rembStatus;
+      if (rembFilter==='valide')      return e.rembStatus==='validé';
+      if (rembFilter==='refuse')      return e.rembStatus==='refusé';
       return true;
     };
-    const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
-    const pending  = sorted.filter(e=>!e.rembDate && !e.rembStatus);
-    const soumis   = sorted.filter(e=>e.rembDate && !e.rembStatus);
-    const valide   = sorted.filter(e=>e.rembStatus==='validé');
-    const refuse   = sorted.filter(e=>e.rembStatus==='refusé');
+    const sorted  = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
+    const pending = sorted.filter(e=>!e.rembDate&&!e.rembStatus);
+    const soumis  = sorted.filter(e=>e.rembDate&&!e.rembStatus);
+    const valide  = sorted.filter(e=>e.rembStatus==='validé');
+    const refuse  = sorted.filter(e=>e.rembStatus==='refusé');
+
     function rembRow(e) {
       const eur = expenseEur(e);
       const statusBadge = e.rembStatus==='validé'
@@ -2273,19 +2268,20 @@ function renderRemb() {
     function section(title, color, list, emptyMsg) {
       if(list.length===0 && color!=='') return '';
       return `<div class="card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span${color?` style="color:${color}"`:''}}>${title}</span>
-      <span style="font-size:12px;color:var(--text3);font-weight:600">${list.length} dépense${list.length!==1?'s':''}</span>
-    </div>
-    ${list.length===0 ? `<div style="color:var(--text3);font-size:14px;text-align:center;padding:16px">${emptyMsg}</div>` : list.map(rembRow).join('')}
-  </div>`;
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span${color?` style="color:${color}"`:''}}>${title}</span>
+          <span style="font-size:12px;color:var(--text3);font-weight:600">${list.length} dépense${list.length!==1?'s':''}</span>
+        </div>
+        ${list.length===0?`<div style="color:var(--text3);font-size:14px;text-align:center;padding:16px">${emptyMsg}</div>`:list.map(rembRow).join('')}
+      </div>`;
     }
-    return section('En attente de remboursement','',pending,'Aucune en attente ✓')
-         + section('Remboursé — en attente de validation','var(--accent)',soumis,'')
-         + section('Validées','var(--green)',valide,'')
-         + section('Refusées','var(--red)',refuse,'');
-  })()}
-  `;
+
+    body.innerHTML = subTabs
+      + section('En attente de remboursement','',pending,'Aucune en attente ✓')
+      + section('Remboursé — en attente de validation','var(--accent)',soumis,'')
+      + section('Validées','var(--green)',valide,'')
+      + section('Refusées','var(--red)',refuse,'');
+  }
 }
 
 // ══════════════════════════════════════════════

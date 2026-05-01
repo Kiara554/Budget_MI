@@ -59,3 +59,17 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → téléchargement groupé JPEG depuis vue Remboursements (bouton "Photos")
     → alerte à la saisie si remboursable sans reçu
     → filtre "⚠️ Sans justificatif" dans vue Remboursements
+
+
+── AMÉLIORATIONS POST-TODO ───────────────────────────────────────────────────
+
+[x] Dépenses récurrentes : modèles rapides (⚡) dans le formulaire de saisie
+    → sauvegarde / application / suppression d'un modèle
+
+[x] Page dédiée Suivi Cash : onglet nav "Cash", onglets mois, stats EUR/TND,
+    liste retraits + dépenses espèces ; bouton Retrait accessible (accent, 40px)
+
+[x] Vue Remboursements en deux sous-pages : "Synthèse" (graphs, OPCO, récap mois,
+    catégories) et "Dépenses" (liste filtrée par statut/mois, badge sans justif)
+
+[x] Badge "Sans reçu" rouge pill dans la liste des remboursements
