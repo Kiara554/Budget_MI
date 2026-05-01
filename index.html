@@ -847,7 +847,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v16';
+const APP_VERSION    = 'v17';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -2025,6 +2025,11 @@ function renderSettings() {
   </div>
 
   <div style="height:20px"></div>
+  <div style="text-align:center;padding-bottom:4px">
+    <button class="btn btn-outline btn-sm" style="font-size:13px;padding:10px 20px" onclick="forceUpdate()">
+      ↻ Mettre à jour l'application
+    </button>
+  </div>
   <div style="text-align:center;padding-bottom:8px;font-size:11px;color:var(--text3);font-family:var(--fm)">
     MI Dépenses ${APP_VERSION} — Cache sw-${APP_VERSION}
   </div>
@@ -2603,6 +2608,23 @@ function init() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       window.location.reload();
     });
+  }
+}
+
+async function forceUpdate() {
+  toast('Recherche de mise à jour…');
+  if (!('serviceWorker' in navigator)) { toast('Service Worker non supporté'); return; }
+  try {
+    // Vider tous les caches
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+    // Désinscrire tous les SW
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+    // Recharger (le SW se réinstallera avec les fichiers frais)
+    window.location.reload(true);
+  } catch(e) {
+    window.location.reload(true);
   }
 }
 
