@@ -847,7 +847,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v14';
+const APP_VERSION    = 'v15';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1463,7 +1463,7 @@ function renderDash() {
   const cashTndRestant = cashTndRetire - cashTndPaid;
 
   // Budget
-  const budgetRef = filterMo==='all' ? BUDGET_TOTAL : BUDGET_MENSUEL;
+  const budgetRef = filterMo==='all' ? BUDGET_TOTAL : filterMo==='mai' ? BUDGET_PREPA : BUDGET_MENSUEL;
   const reste     = budgetRef - totalEur;
   const pctUsed   = pct(totalEur, budgetRef);
 
@@ -1781,25 +1781,38 @@ function renderRemb() {
     `).join('')}
   </div>
 
-  <div class="card">
-    <div class="card-title">Dépenses remboursables</div>
-    ${rembExp.length===0 ? '<div style="color:var(--text3);font-size:14px;text-align:center;padding:20px">Aucune dépense remboursable</div>' :
-      rembExp.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
-        const cat = CAT_MAP[e.catId]||CAT_MAP.divers;
-        const col = catColor(e.catId);
-        const eur = expenseEur(e);
-        return `<div class="remb-row" onclick="openDetail('${e.id}')" style="cursor:pointer">
-          <div class="remb-row-left">
-            <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(e.catId,16)} ${escHtml(e.desc)||'Sans desc.'}</div>
-            <div class="remb-row-sub" style="display:flex;align-items:center;gap:4px">${formatDate(e.date)} · ${e.recu?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Reçu`:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Pas de reçu`}</div>
-          </div>
-          <div class="remb-row-right">
-            <div class="remb-row-val">${fmtEur(eur,2)}</div>
-          </div>
-        </div>`;
-      }).join('')
+  ${(()=>{
+    const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    const pending = sorted.filter(e=>!e.rembDate);
+    const done    = sorted.filter(e=>!!e.rembDate);
+    function rembRow(e) {
+      const eur = expenseEur(e);
+      return `<div class="remb-row" onclick="openDetail('${e.id}')" style="cursor:pointer">
+        <div class="remb-row-left">
+          <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(e.catId,16)} ${e.enseigne?`<span style="font-weight:800">${escHtml(e.enseigne)}</span>${e.desc?` · ${escHtml(e.desc)}`:''}`:escHtml(e.desc)||'Sans desc.'}</div>
+          <div class="remb-row-sub" style="display:flex;align-items:center;gap:4px">${formatDate(e.date)}${e.rembDate?` · <span style="color:var(--green);font-weight:700">Remboursé le ${formatDate(e.rembDate)}</span>`:''} · ${e.recu?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Reçu`:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Pas de reçu`}</div>
+        </div>
+        <div class="remb-row-right">
+          <div class="remb-row-val">${fmtEur(eur,2)}</div>
+        </div>
+      </div>`;
     }
+    return `
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>En attente de remboursement</span>
+      <span style="font-size:12px;color:var(--text3);font-weight:600">${pending.length} dépense${pending.length!==1?'s':''}</span>
+    </div>
+    ${pending.length===0 ? '<div style="color:var(--text3);font-size:14px;text-align:center;padding:16px">Aucune en attente ✓</div>' : pending.map(rembRow).join('')}
   </div>
+  ${done.length>0?`<div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span style="color:var(--green)">Remboursées</span>
+      <span style="font-size:12px;color:var(--text3);font-weight:600">${done.length} dépense${done.length!==1?'s':''}</span>
+    </div>
+    ${done.map(rembRow).join('')}
+  </div>`:''}`;
+  })()}
   `;
 }
 
@@ -1906,12 +1919,15 @@ function renderSettings() {
   <div class="settings-section">
     <div class="settings-section-title">💱 Taux de change</div>
     <div class="card">
-      <div class="form-group" style="margin:0">
+      <div class="form-group" style="margin-bottom:10px">
         <label class="form-label">1 EUR = ? TND</label>
-        <input class="form-input" type="number" id="s-rate" value="${settings.rate}" step="0.01" min="1">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" type="number" id="s-rate" value="${settings.rate}" step="0.01" min="1" style="flex:1">
+          <button onclick="fetchRate()" id="btn-fetch-rate" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">↻ Actuel</button>
+        </div>
+        <div id="rate-info" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
       </div>
-      <div style="height:10px"></div>
-      <button class="btn btn-accent" onclick="saveRate()" style="min-height:44px">💾 Sauvegarder le taux</button>
+      <button class="btn btn-accent" onclick="saveRate()" style="min-height:44px">Sauvegarder le taux</button>
     </div>
   </div>
 
@@ -2055,6 +2071,27 @@ async function savePAT() {
       setSyncState('error');
       toast('Erreur recherche Gist : ' + e.message);
     }
+  }
+}
+
+async function fetchRate() {
+  const btn = document.getElementById('btn-fetch-rate');
+  const info = document.getElementById('rate-info');
+  if(btn) btn.textContent = '…';
+  try {
+    const resp = await fetch('https://open.er-api.com/v6/latest/EUR');
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const rate = data.rates?.TND;
+    if(!rate) throw new Error('TND introuvable');
+    document.getElementById('s-rate').value = rate.toFixed(4);
+    if(info) info.textContent = `Taux en temps réel : 1 € = ${rate.toFixed(4)} TND`;
+    toast(`Taux récupéré : 1 € = ${rate.toFixed(4)} TND`);
+  } catch(e) {
+    toast('Impossible de récupérer le taux : ' + e.message);
+    if(info) info.textContent = 'Erreur — vérifie ta connexion';
+  } finally {
+    if(btn) btn.textContent = '↻ Actuel';
   }
 }
 
@@ -2362,8 +2399,16 @@ function openDetail(id) {
       </div>
     ` : ''}
 
+    ${e.remb ? `<div style="margin-bottom:12px;background:var(--surface2);border-radius:12px;padding:12px 14px">
+      ${e.rembDate
+        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Annuler le remboursement</button>`
+        : `<button class="btn btn-accent" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="markRemb('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Marquer comme remboursé</button>`
+      }
+    </div>` : ''}
+
     <div class="btn-row" style="margin-bottom:10px">
-      <button class="btn btn-accent btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openEdit('${e.id}')">${icon('edit',16,'#fff')} Modifier</button>
+      <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openEdit('${e.id}')">${icon('edit',16)} Modifier</button>
       <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="addPhotoAfter('${e.id}')">${icon('camera',16)} ${e.photo?'Changer le reçu':'Ajouter un reçu'}</button>
     </div>
     <button class="btn btn-red" style="min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%" onclick="deleteExpense('${e.id}')">${icon('trash',16,'var(--red)')} Supprimer</button>
@@ -2377,6 +2422,20 @@ function deleteExpense(id) {
   expenses = expenses.filter(e=>e.id!==id);
   save(); closeModal('modal-detail'); render();
   toast('Dépense supprimée');
+}
+
+function markRemb(id) {
+  const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
+  expenses[idx].rembDate = new Date().toISOString().slice(0,10);
+  save(); openDetail(id); renderRemb();
+  toast('Marqué comme remboursé ✓');
+}
+
+function markUnremb(id) {
+  const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
+  delete expenses[idx].rembDate;
+  save(); openDetail(id); renderRemb();
+  toast('Remboursement annulé');
 }
 
 // ══════════════════════════════════════════════
