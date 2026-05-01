@@ -2502,9 +2502,23 @@ function init() {
   populateCatSelect();
   render();
   initLock();
-  // Service Worker
+  // Service Worker — mise à jour automatique
   if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          // Nouvelle version installée → force l'activation immédiate
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(()=>{});
+    // Quand le nouveau SW prend le contrôle → rechargement silencieux
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   }
 }
 

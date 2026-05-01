@@ -1,5 +1,5 @@
 const CACHE = 'mi-depenses-v13';
-// const CORE = ['./','./index.html','./manifest.json','./icon.svg'];
+const CORE = ['./','./index.html','./manifest.json','./icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
@@ -13,6 +13,10 @@ self.addEventListener('activate', e => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
