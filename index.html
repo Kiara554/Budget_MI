@@ -758,6 +758,7 @@ button { cursor: pointer; border: none; background: none; }
       </button>
     </div>
     <div class="view-sub">Suivi des remboursements LEEM</div>
+    <div class="filter-row" id="remb-filter-row" style="padding:6px 0 4px"></div>
   </div>
   <div class="view-body" id="remb-body"></div>
 </div>
@@ -1231,6 +1232,7 @@ let filterMo    = 'all';
 let dashCurrency = 'EUR';
 let search    = '';
 let catFilter = 'all';
+let rembFilter  = 'all';
 let photoData = null;
 let detailId  = null;
 let editingId = null;
@@ -1877,11 +1879,29 @@ function onSearch(v) { search=v; renderList(); }
 //  RENDER: REMBOURSEMENTS
 // ══════════════════════════════════════════════
 function renderRemb() {
+  // Chips de filtre
+  const filterCfg = [
+    { id:'all',      label:'Tout',        color:'' },
+    { id:'pending',  label:'En attente',  color:'var(--orange)' },
+    { id:'soumis',   label:'Soumis',      color:'var(--accent)' },
+    { id:'valide',   label:'Validé',      color:'var(--green)'  },
+    { id:'refuse',   label:'Refusé',      color:'var(--red)'    },
+  ];
+  const filterRow = document.getElementById('remb-filter-row');
+  if (filterRow) {
+    filterRow.innerHTML = filterCfg.map(f =>
+      `<button class="filter-chip ${rembFilter===f.id?'active':''}"
+        onclick="rembFilter='${f.id}';renderRemb()"
+        style="${rembFilter===f.id&&f.color?`background:${f.color};border-color:${f.color}`:''}"
+      >${f.label}</button>`
+    ).join('');
+  }
+
   const rembExp = expenses.filter(e=>e.remb);
   const totalRemb     = rembExp.reduce((s,e)=>s+expenseEur(e),0);
   const avecRecu      = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
   const sansRecu      = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const dejaRembourse = 0; // no tracking field, could add later
+  const dejaRembourse = 0;
   const plafondTotal  = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
 
   // Per-category
@@ -1928,8 +1948,16 @@ function renderRemb() {
   </div>
 
   ${(()=>{
-    const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date));
-    const pending  = sorted.filter(e=>!e.rembDate);
+    const matchFilter = e => {
+      if (rembFilter === 'all')     return true;
+      if (rembFilter === 'pending') return !e.rembDate && !e.rembStatus;
+      if (rembFilter === 'soumis')  return e.rembDate && !e.rembStatus;
+      if (rembFilter === 'valide')  return e.rembStatus === 'validé';
+      if (rembFilter === 'refuse')  return e.rembStatus === 'refusé';
+      return true;
+    };
+    const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
+    const pending  = sorted.filter(e=>!e.rembDate && !e.rembStatus);
     const soumis   = sorted.filter(e=>e.rembDate && !e.rembStatus);
     const valide   = sorted.filter(e=>e.rembStatus==='validé');
     const refuse   = sorted.filter(e=>e.rembStatus==='refusé');
