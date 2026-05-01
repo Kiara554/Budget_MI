@@ -1033,7 +1033,8 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v24';
+const APP_VERSION    = 'v25';
+const OPCO_GLOBAL_MAX = 2500;
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -2110,9 +2111,16 @@ function renderRemb() {
   const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
   const allExpMo     = rembMo==='all' ? expenses.filter(e=>e.catId!=='cash') : expenses.filter(e=>e.catId!=='cash'&&getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
   const totalDepense = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
-  const montantRecup = Math.min(totalRemb, plafondTotal);
+  // Chaque dépense contribue au max son plafond de catégorie (si défini)
+  const totalRembCapped = rembExp.reduce((s,e)=>{
+    const p = getPlafond(e.catId);
+    return s + (p !== null ? Math.min(expenseEur(e), p) : expenseEur(e));
+  }, 0);
+  // Le plafond effectif est le min entre la somme des plafonds catégories et le max OPCO global
+  const opcoEffectiveMax = plafondTotal > 0 ? Math.min(plafondTotal, OPCO_GLOBAL_MAX) : OPCO_GLOBAL_MAX;
+  const montantRecup = Math.min(totalRembCapped, opcoEffectiveMax);
   const pctRemb      = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
-  const pctPlafond   = plafondTotal>0 ? totalRemb/plafondTotal*100 : 0;
+  const pctPlafond   = opcoEffectiveMax>0 ? totalRembCapped/opcoEffectiveMax*100 : 0;
   const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
   const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
     const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
@@ -2192,11 +2200,11 @@ function renderRemb() {
       <div class="prog-wrap" style="margin-top:10px">
         <div class="prog-header">
           <span class="prog-label">Plafond OPCO utilisé</span>
-          <span class="prog-amount">${fmtEur(totalRemb,0)} / ${fmtEur(plafondTotal,0)}</span>
+          <span class="prog-amount">${fmtEur(totalRembCapped,0)} / ${fmtEur(opcoEffectiveMax,0)}</span>
         </div>
         <div class="prog-bar-bg"><div class="prog-bar" style="width:${Math.min(pctPlafond,100).toFixed(1)}%;background:${pctPlafond<70?'var(--green)':pctPlafond<90?'var(--orange)':'var(--red)'}"></div></div>
         <div class="prog-sub">
-          <span>${pctPlafond.toFixed(0)}% du plafond atteint</span>
+          <span>${pctPlafond.toFixed(0)}% du plafond de ${fmtEur(opcoEffectiveMax,0)} atteint${opcoEffectiveMax===OPCO_GLOBAL_MAX&&plafondTotal>OPCO_GLOBAL_MAX?' (max OPCO)':''}</span>
           <span style="font-weight:700;color:var(--green)">Récupérable : ${fmtEur(montantRecup,2)}</span>
         </div>
       </div>
@@ -2482,6 +2490,17 @@ function renderSettings() {
               </tr>`;
             }).join('')}
           </tbody>
+          <tfoot>
+            <tr>
+              <td style="padding:8px 12px;font-size:12px;font-weight:900;color:var(--text);border-top:2px solid var(--border);border:none;background:none">Total</td>
+              <td style="border-top:2px solid var(--border);border:none;background:none;text-align:right;font-size:13px;font-weight:900;font-family:var(--fm);color:var(--accent)">
+                ${fmtEur(CATS.reduce((s,c)=>s+getBudget(c.id),0),0)}
+              </td>
+              <td style="border-top:2px solid var(--border);border:none;background:none;text-align:right;font-size:13px;font-weight:900;font-family:var(--fm);color:var(--green)">
+                ${fmtEur(CATS.reduce((s,c)=>{ const p=getPlafond(c.id); return s+(p||0); },0),0)} <span style="font-size:10px;font-weight:700;color:var(--text3)">/ ${fmtEur(OPCO_GLOBAL_MAX,0)} max</span>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <div style="padding:10px 12px 4px;display:flex;gap:10px">
@@ -3116,6 +3135,20 @@ function openDetail(id) {
         <div class="detail-meta-label">Remboursable</div>
         <div class="detail-meta-val" style="display:flex;align-items:center;gap:4px">${e.remb?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--green)">Oui</span>`:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span style="color:var(--text3)">Non</span>`}</div>
       </div>
+      ${(()=>{
+        if (!e.remb) return '';
+        const p = getPlafond(e.catId);
+        if (p === null) return '';
+        const montantRemb = Math.min(expenseEur(e), p);
+        const isCapped = expenseEur(e) > p;
+        return `<div class="detail-meta-item">
+          <div class="detail-meta-label">Montant OPCO</div>
+          <div class="detail-meta-val" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-weight:800;font-family:var(--fm);color:var(--green)">${fmtEur(montantRemb,2)}</span>
+            ${isCapped?`<span style="font-size:11px;color:var(--orange);font-weight:700">(plafonné à ${fmtEur(p,0)})</span>`:''}
+          </div>
+        </div>`;
+      })()}
       <div class="detail-meta-item">
         <div class="detail-meta-label">Reçu joint</div>
         <div class="detail-meta-val" style="display:flex;align-items:center;gap:4px">${e.recu?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--green)">Oui</span>`:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span style="color:var(--text3)">Non</span>`}</div>
