@@ -274,6 +274,26 @@ button { cursor: pointer; border: none; background: none; }
 }
 .filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+/* ── TEMPLATE CHIPS ── */
+.tpl-section { margin-bottom: 16px; }
+.tpl-section-label { font-size: 11px; font-weight: 800; color: var(--text3); letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 7px; }
+.tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpl-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 10px 7px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 700; border: 1.5px solid var(--accent);
+  background: var(--surface); color: var(--accent);
+  cursor: pointer; transition: all .15s; min-height: 36px;
+}
+.tpl-chip:active { background: var(--accent); color: #fff; }
+.tpl-chip-del {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(124,106,245,0.15); font-size: 11px; font-weight: 900;
+  color: var(--accent); flex-shrink: 0; line-height: 1;
+}
+.tpl-chip-del:active { background: var(--red); color: #fff; }
+
 /* ── DONUT SVG ── */
 .donut-wrap { display: flex; align-items: center; gap: 16px; }
 .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 5px; }
@@ -814,6 +834,10 @@ button { cursor: pointer; border: none; background: none; }
       <button class="modal-close" onclick="closeModal('modal-add')" aria-label="Fermer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
+      <div class="tpl-section" id="tpl-section">
+        <div class="tpl-section-label">⚡ Modèles rapides</div>
+        <div class="tpl-chips" id="tpl-chips"></div>
+      </div>
       <div class="form-group">
         <label class="form-label">Date</label>
         <input class="form-input" type="date" id="f-date" onchange="autoFillRecuName()">
@@ -875,6 +899,10 @@ button { cursor: pointer; border: none; background: none; }
         <input class="form-input" type="text" id="f-recu-name" placeholder="Ex: recu_loyer_mai.jpg" oninput="this.dataset.userEdited='1'">
       </div>
       <button class="btn btn-accent" id="btn-submit-add" onclick="submitAdd()">💾 Enregistrer</button>
+      <button class="btn btn-outline" id="btn-save-tpl" onclick="saveAsTemplate()" style="margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Sauvegarder comme modèle
+      </button>
       <div style="height:8px"></div>
     </div>
   </div>
@@ -985,7 +1013,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v21';
+const APP_VERSION    = 'v22';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1284,6 +1312,7 @@ function disablePin() {
 let expenses    = [];
 let withdrawals = [];
 let gains       = [];
+let templates   = [];
 let settings  = { rate: 3.38, budgets: {}, paymentMethods: null, githubPAT: '', githubGistId: '' };
 let curView   = 'dashboard';
 let filterMo    = 'all';
@@ -1352,6 +1381,7 @@ function save() {
   localStorage.setItem('mi_expenses',    JSON.stringify(expForStorage));
   localStorage.setItem('mi_withdrawals', JSON.stringify(withdrawals));
   localStorage.setItem('mi_gains',       JSON.stringify(gains));
+  localStorage.setItem('mi_templates',   JSON.stringify(templates));
   localStorage.setItem('mi_settings',    JSON.stringify(settings));
   // Persistance des photos dans IndexedDB
   expenses.forEach(e => {
@@ -1363,6 +1393,7 @@ async function load() {
   try { expenses    = JSON.parse(localStorage.getItem('mi_expenses'))    || []; } catch(e){ expenses=[]; }
   try { withdrawals = JSON.parse(localStorage.getItem('mi_withdrawals')) || []; } catch(e){ withdrawals=[]; }
   try { gains       = JSON.parse(localStorage.getItem('mi_gains'))       || []; } catch(e){ gains=[]; }
+  try { templates   = JSON.parse(localStorage.getItem('mi_templates'))   || []; } catch(e){ templates=[]; }
   try {
     const defaults = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
     settings = Object.assign(defaults, JSON.parse(localStorage.getItem('mi_settings'))||{});
@@ -1458,6 +1489,7 @@ function gistPayload() {
     expenses,
     withdrawals,
     gains,
+    templates,
   };
   return JSON.stringify({ files: { 'mi-depenses.json': { content: JSON.stringify(backup, null, 2) } } });
 }
@@ -1523,6 +1555,7 @@ async function loadFromGist() {
     if (Array.isArray(d.expenses))    expenses    = d.expenses;
     if (Array.isArray(d.withdrawals)) withdrawals = d.withdrawals;
     if (Array.isArray(d.gains))       gains       = d.gains;
+    if (Array.isArray(d.templates))   templates   = d.templates;
     if (d.settings) {
       settings = {
         ...settings,
@@ -1924,7 +1957,10 @@ function renderDash() {
   <!-- Cash tracking -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 8px">
     <div class="section-label">Suivi cash</div>
-    <button class="btn btn-outline btn-sm" style="font-size:12px;padding:5px 12px" onclick="openWithdrawModal()">+ Retrait</button>
+    <button onclick="openWithdrawModal()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;min-height:40px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.2px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Retrait
+    </button>
   </div>
   <div class="stat-grid">
     ${cashEurRetire > 0 || cashEurPaid > 0 ? `
@@ -1974,8 +2010,8 @@ function renderDash() {
         <div style="font-size:11px;color:var(--text3)">${formatDate(w.date)}</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <button onclick="openEditWithdraw('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:15px;line-height:1" title="Modifier">✎</button>
-        <button onclick="deleteWithdraw('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:16px;line-height:1" title="Supprimer">✕</button>
+        <button onclick="openEditWithdraw('${w.id}')" style="background:var(--surface2);border:none;cursor:pointer;color:var(--text2);padding:6px 8px;font-size:15px;line-height:1;border-radius:8px;min-width:32px;min-height:32px" title="Modifier">✎</button>
+        <button onclick="deleteWithdraw('${w.id}')" style="background:var(--surface2);border:none;cursor:pointer;color:var(--red);padding:6px 8px;font-size:14px;line-height:1;border-radius:8px;min-width:32px;min-height:32px" title="Supprimer">✕</button>
       </div>
     </div>`).join('')}
   </div>` : ''}
@@ -2894,11 +2930,73 @@ function openAddModal() {
   const recuEl = document.getElementById('f-recu-name');
   recuEl.dataset.userEdited = '0';
   recuEl.value = '';
-  autoSetRemb(); // pré-coche selon la catégorie par défaut
+  autoSetRemb();
   setToggle('t-recu', false);
   updatePhotoPreview();
+  renderTemplateChips();
+  document.getElementById('tpl-section').style.display = '';
+  document.getElementById('btn-save-tpl').style.display = '';
   openModal('modal-add');
   autoFillRecuName();
+}
+
+// ── MODÈLES (templates) ───────────────────────
+function renderTemplateChips() {
+  const el = document.getElementById('tpl-chips');
+  if (!el) return;
+  if (!templates.length) {
+    el.innerHTML = `<span style="font-size:12px;color:var(--text3)">Aucun modèle — saisir une dépense et taper ★ pour en créer un.</span>`;
+    return;
+  }
+  el.innerHTML = templates.map(t => {
+    const cat = CATS.find(c => c.id === t.catId);
+    return `<button class="tpl-chip" onclick="applyTemplate('${t.id}')">
+      ${icon(cat?.ic||'divers', 14)} ${escHtml(t.name)}
+      <span class="tpl-chip-del" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</span>
+    </button>`;
+  }).join('');
+}
+
+function applyTemplate(id) {
+  const t = templates.find(x => x.id === id); if (!t) return;
+  document.getElementById('f-cat').value      = t.catId;
+  document.getElementById('f-enseigne').value = t.enseigne || '';
+  document.getElementById('f-desc').value     = t.desc     || '';
+  document.getElementById('f-amount').value   = t.amount   || '';
+  document.getElementById('f-currency').value = t.currency || 'TND';
+  document.getElementById('f-bank').value     = t.bankFee  || '0';
+  populatePaymentSelect();
+  if (t.payment) document.getElementById('f-payment').value = t.payment;
+  setToggle('t-remb', !!t.remb);
+  const recuEl = document.getElementById('f-recu-name');
+  recuEl.dataset.userEdited = '0';
+  recuEl.value = '';
+  autoFillRecuName();
+}
+
+function saveAsTemplate() {
+  const catId    = document.getElementById('f-cat').value;
+  const enseigne = document.getElementById('f-enseigne').value.trim();
+  const desc     = document.getElementById('f-desc').value.trim();
+  const amount   = document.getElementById('f-amount').value;
+  const currency = document.getElementById('f-currency').value;
+  const bankFee  = document.getElementById('f-bank').value;
+  const payment  = document.getElementById('f-payment').value;
+  const remb     = document.getElementById('t-remb').classList.contains('on');
+  const cat      = CATS.find(c => c.id === catId);
+  const defaultName = enseigne || cat?.lbl || catId;
+  const name = prompt('Nom du modèle :', defaultName);
+  if (!name) return;
+  templates.push({ id: uid(), name: name.trim(), catId, enseigne, desc, amount: parseFloat(amount)||0, currency, bankFee: parseFloat(bankFee)||0, payment, remb });
+  save();
+  renderTemplateChips();
+  toast('Modèle "' + name.trim() + '" sauvegardé !');
+}
+
+function deleteTemplate(id) {
+  templates = templates.filter(t => t.id !== id);
+  save();
+  renderTemplateChips();
 }
 
 function openEdit(id) {
@@ -2922,6 +3020,8 @@ function openEdit(id) {
   setToggle('t-remb', !!e.remb);
   setToggle('t-recu', !!e.recu);
   updatePhotoPreview();
+  document.getElementById('tpl-section').style.display = 'none';
+  document.getElementById('btn-save-tpl').style.display = 'none';
   openModal('modal-add');
 }
 
