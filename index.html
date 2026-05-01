@@ -1607,7 +1607,8 @@ function renderDash() {
   const monthlyTotals = MONTH_DATES.map(ym =>
     allExp.filter(e=>getMonth(e)===ym && e.catId!=='cash').reduce((s,e)=>s+expenseEur(e),0)
   );
-  const maxMonthly = Math.max(...monthlyTotals, 1);
+  const monthlyBudgets = MONTHS.map(m => getBudgetGlobal(m));
+  const maxMonthly = Math.max(...monthlyTotals, ...monthlyBudgets, 1);
 
   // Donut segments
   const donutSegs = catStats.filter(x=>x.spent>0).map(x=>({
@@ -1721,16 +1722,25 @@ function renderDash() {
 
   <!-- Monthly mini chart -->
   <div class="card">
-    <div class="card-title">Progression mensuelle</div>
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Progression mensuelle</span>
+      <span style="font-size:10px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:18px;height:2px;border-top:2px dashed var(--text3);vertical-align:middle"></span>Budget
+      </span>
+    </div>
     <div class="monthly-bars">
       ${MONTH_DATES.map((ym,i)=>{
-        const v = monthlyTotals[i];
-        const h = maxMonthly>0 ? Math.max(4,(v/maxMonthly)*100) : 4;
-        const col = ['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
+        const v      = monthlyTotals[i];
+        const budget = monthlyBudgets[i];
+        const h      = maxMonthly>0 ? Math.max(4,(v/maxMonthly)*100) : 4;
+        const bLine  = maxMonthly>0 ? (budget/maxMonthly)*100 : 0;
+        const colors = ['#fb7185','#38bdf8','#4ade80','#a78bfa'];
+        const col    = v > budget ? 'var(--red)' : colors[i];
         return `<div class="monthly-bar-wrap">
-          <div class="monthly-bar-val">${v>0?dashFmt(v,0):''}</div>
-          <div class="monthly-bar-bg">
+          <div class="monthly-bar-val" style="color:${v>budget?'var(--red)':'var(--text2)'}">${v>0?dashFmt(v,0):''}</div>
+          <div class="monthly-bar-bg" style="position:relative">
             <div class="monthly-bar-fill" style="height:${h}%;background:${col}"></div>
+            ${bLine>0&&bLine<=100?`<div style="position:absolute;left:0;right:0;bottom:${bLine.toFixed(1)}%;height:2px;background:rgba(0,0,0,0.20);border-top:2px dashed rgba(0,0,0,0.30);pointer-events:none"></div>`:''}
           </div>
           <div class="monthly-bar-label">${MONTH_LABELS[i]}</div>
         </div>`;
