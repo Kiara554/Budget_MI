@@ -1478,6 +1478,12 @@ function getMonthIdx(e) {
   return MONTH_DATES.indexOf(ym);
 }
 
+function getBudgetGlobal(mo) {
+  if (mo === 'all') return settings.budgetTotal   ?? BUDGET_TOTAL;
+  if (mo === 'mai') return settings.budgetPrepa    ?? BUDGET_PREPA;
+  return                    settings.budgetMensuel ?? BUDGET_MENSUEL;
+}
+
 function getBudget(catId) {
   if(settings.budgets[catId] && settings.budgets[catId].budget !== undefined)
     return settings.budgets[catId].budget;
@@ -1575,7 +1581,7 @@ function renderDash() {
   const cashTndRestant = cashTndRetire - cashTndPaid;
 
   // Budget
-  const budgetRef = filterMo==='all' ? BUDGET_TOTAL : filterMo==='mai' ? BUDGET_PREPA : BUDGET_MENSUEL;
+  const budgetRef = getBudgetGlobal(filterMo);
   const reste     = budgetRef - totalEur;
   const pctUsed   = pct(totalEur, budgetRef);
 
@@ -2074,6 +2080,31 @@ function renderSettings() {
     </div>
   </div>
 
+  <!-- Budget global -->
+  <div class="settings-section">
+    <div class="settings-section-title">🎯 Budget global du stage</div>
+    <div class="card">
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Budget total (€)</label>
+          <input class="form-input" type="number" id="s-budget-total" min="0" step="1"
+            value="${settings.budgetTotal ?? BUDGET_TOTAL}" placeholder="${BUDGET_TOTAL}">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Budget Mai (€)</label>
+          <input class="form-input" type="number" id="s-budget-prepa" min="0" step="1"
+            value="${settings.budgetPrepa ?? BUDGET_PREPA}" placeholder="${BUDGET_PREPA}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Budget mensuel Juin–Août (€)</label>
+        <input class="form-input" type="number" id="s-budget-mensuel" min="0" step="1"
+          value="${settings.budgetMensuel ?? BUDGET_MENSUEL}" placeholder="${BUDGET_MENSUEL}">
+      </div>
+      <button class="btn btn-accent" onclick="saveBudgetGlobal()" style="min-height:44px">💾 Sauvegarder</button>
+    </div>
+  </div>
+
   <!-- Budget par catégorie -->
   <div class="settings-section">
     <div class="settings-section-title">💰 Budgets par catégorie</div>
@@ -2265,6 +2296,20 @@ function saveRate() {
   settings.rate = v;
   save();
   toast('Taux sauvegardé : 1€ = '+v+' TND');
+}
+
+function saveBudgetGlobal() {
+  const total   = parseFloat(document.getElementById('s-budget-total')?.value);
+  const prepa   = parseFloat(document.getElementById('s-budget-prepa')?.value);
+  const mensuel = parseFloat(document.getElementById('s-budget-mensuel')?.value);
+  if (isNaN(total) || isNaN(prepa) || isNaN(mensuel) || total <= 0 || prepa <= 0 || mensuel <= 0) {
+    toast('Valeurs invalides'); return;
+  }
+  settings.budgetTotal   = total;
+  settings.budgetPrepa   = prepa;
+  settings.budgetMensuel = mensuel;
+  save(); renderDash();
+  toast('Budgets globaux sauvegardés ✓');
 }
 
 function saveBudgets() {
