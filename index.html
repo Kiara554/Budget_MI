@@ -1896,11 +1896,21 @@ function renderDash() {
           </span>
           <span class="prog-amount">${dashFmt(spent,0)}${budget>0?' / '+dashFmt(budget,0):''}</span>
         </div>
-        ${budget>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${Math.min(p,100)}%;background:${pColor}"></div></div>
-        <div class="prog-sub">${p>100
-          ? `<span style="color:var(--red);font-weight:800">⚠ Dépassement +${dashFmt(spent-budget,0)}</span><span>Budget: ${dashFmt(budget,0)}</span>`
-          : `<span>${p.toFixed(0)}%</span><span>Reste: ${dashFmt(budget-spent,0)}</span>`
-        }</div>`:
+        ${budget>0 ? (()=>{
+          const max   = Math.max(spent, budget);
+          const wOk   = (Math.min(spent, budget) / max * 100).toFixed(1);
+          const wOver = spent > budget ? ((spent - budget) / max * 100).toFixed(1) : 0;
+          return `<div class="prog-bar-bg" style="overflow:visible">
+            <div style="display:flex;height:100%;border-radius:99px;overflow:hidden">
+              <div style="width:${wOk}%;background:${col.bar};transition:width .4s;flex-shrink:0"></div>
+              ${wOver > 0 ? `<div style="width:${wOver}%;background:var(--red);transition:width .4s;flex-shrink:0"></div>` : ''}
+            </div>
+          </div>
+          <div class="prog-sub">${p>100
+            ? `<span style="color:var(--red);font-weight:800">Dépassement +${dashFmt(spent-budget,0)}</span><span>Budget: ${dashFmt(budget,0)}</span>`
+            : `<span>${p.toFixed(0)}%</span><span>Reste: ${dashFmt(budget-spent,0)}</span>`
+          }</div>`;
+        })() :
         `<div class="prog-sub"><span>Pas de budget fixé</span></div>`}
       </div>`;
     }).join('')}
