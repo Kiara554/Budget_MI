@@ -847,7 +847,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v12';
+const APP_VERSION    = 'v13';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -2391,6 +2391,8 @@ function handlePhoto(event, inputId) {
   resizeImage(file, 900, 0.78, dataUrl => {
     photoData = dataUrl;
     updatePhotoPreview();
+    // Coche automatiquement "Reçu présent ?"
+    setToggle('t-recu', true);
   });
 }
 
