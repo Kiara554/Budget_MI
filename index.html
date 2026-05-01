@@ -750,7 +750,13 @@ button { cursor: pointer; border: none; background: none; }
 <!-- ═══════════════ VIEW: REMBOURSEMENTS ═══════════════ -->
 <div class="view" id="view-remb">
   <div class="view-header">
-    <div class="view-title">Remboursements</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="view-title">Remboursements</div>
+      <button onclick="exportRembCSV()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        CSV
+      </button>
+    </div>
     <div class="view-sub">Suivi des remboursements LEEM</div>
   </div>
   <div class="view-body" id="remb-body"></div>
@@ -2869,6 +2875,47 @@ function init() {
       window.location.reload();
     });
   }
+}
+
+function exportRembCSV() {
+  const rembExp = expenses.filter(e => e.remb);
+  if (!rembExp.length) { toast('Aucune dépense remboursable'); return; }
+
+  const statut = e =>
+    e.rembStatus === 'validé'  ? 'Validé'  :
+    e.rembStatus === 'refusé'  ? 'Refusé'  :
+    e.rembDate                 ? 'Soumis'  : 'En attente';
+
+  const rows = [
+    ['Date','Catégorie','Enseigne','Description','Montant EUR','Devise','Montant original','Statut','Reçu','Nom reçu'],
+    ...rembExp
+      .slice().sort((a,b) => a.date.localeCompare(b.date))
+      .map(e => [
+        e.date,
+        CAT_MAP[e.catId]?.lbl || e.catId,
+        e.enseigne || '',
+        e.desc || '',
+        expenseEur(e).toFixed(2),
+        e.currency || 'EUR',
+        Number(e.amount).toFixed(2),
+        statut(e),
+        e.recu ? 'Oui' : 'Non',
+        e.recuName || '',
+      ])
+  ];
+
+  const csv = rows
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+    .join('\r\n');
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `remboursements_leem_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast(`CSV exporté — ${rembExp.length} dépenses ✓`);
 }
 
 function toggleTheme() {
