@@ -752,9 +752,9 @@ button { cursor: pointer; border: none; background: none; }
   <div class="view-header">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div class="view-title">Remboursements</div>
-      <button onclick="exportRembCSV()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
+      <button onclick="exportRembExcel()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        CSV
+        Excel
       </button>
     </div>
     <div class="view-sub">Suivi des remboursements LEEM</div>
@@ -2877,45 +2877,133 @@ function init() {
   }
 }
 
-function exportRembCSV() {
+function exportRembExcel() {
   const rembExp = expenses.filter(e => e.remb);
   if (!rembExp.length) { toast('Aucune dépense remboursable'); return; }
 
-  const statut = e =>
-    e.rembStatus === 'validé'  ? 'Validé'  :
-    e.rembStatus === 'refusé'  ? 'Refusé'  :
-    e.rembDate                 ? 'Soumis'  : 'En attente';
+  const sorted   = rembExp.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const totalTtc = sorted.reduce((s,e) => s + expenseTnd(e), 0); // devises originales → approx TND
+  const totalEur = sorted.reduce((s,e) => s + expenseEur(e), 0);
+  const rate     = settings.rate || 3.38;
 
-  const rows = [
-    ['Date','Catégorie','Enseigne','Description','Montant EUR','Devise','Montant original','Statut','Reçu','Nom reçu'],
-    ...rembExp
-      .slice().sort((a,b) => a.date.localeCompare(b.date))
-      .map(e => [
-        e.date,
-        CAT_MAP[e.catId]?.lbl || e.catId,
-        e.enseigne || '',
-        e.desc || '',
-        expenseEur(e).toFixed(2),
-        e.currency || 'EUR',
-        Number(e.amount).toFixed(2),
-        statut(e),
-        e.recu ? 'Oui' : 'Non',
-        e.recuName || '',
-      ])
-  ];
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+    xmlns:x="urn:schemas-microsoft-com:office:excel"
+    xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets>
+<x:ExcelWorksheet><x:Name>Note de Frais LEEM</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; }
+  td { padding: 5px 8px; }
+  .hdr { font-weight: bold; background: #dce6f1; }
+  .col-hdr { font-weight: bold; background: #1f3864; color: #fff; text-align: center; }
+  .alt { background: #f2f7ff; }
+  .total-row { font-weight: bold; background: #dce6f1; }
+</style>
+</head>
+<body>
+<table border="1" cellspacing="0" cellpadding="5"
+  style="border-collapse:collapse;font-size:11px;width:100%">
 
-  const csv = rows
-    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
-    .join('\r\n');
+  <!-- Titre -->
+  <tr>
+    <td colspan="8" style="font-size:13px;font-weight:bold;text-align:center;background:#1f3864;color:#fff;padding:10px">
+      FORMULAIRE NOTE DE FRAIS — MOBILITÉ INTERNATIONALE APPRENTIS
+    </td>
+  </tr>
 
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  <!-- Infos étudiant -->
+  <tr>
+    <td colspan="2" class="hdr">Campus :</td>
+    <td colspan="2">Nanterre</td>
+    <td colspan="2" class="hdr">ÉCOLE :</td>
+    <td colspan="2"></td>
+  </tr>
+  <tr>
+    <td colspan="2" class="hdr">Nom :</td>
+    <td colspan="2"></td>
+    <td colspan="2" class="hdr">Prénom :</td>
+    <td colspan="2"></td>
+  </tr>
+  <tr>
+    <td colspan="2" class="hdr">Promo :</td>
+    <td colspan="2"></td>
+    <td colspan="2" class="hdr">Taux de change =</td>
+    <td colspan="2">${rate} TND/€</td>
+  </tr>
+
+  <!-- Spacer -->
+  <tr><td colspan="8" style="padding:4px;border:none"></td></tr>
+
+  <!-- En-têtes colonnes -->
+  <tr>
+    <td class="col-hdr" style="width:80px">DATE</td>
+    <td class="col-hdr" style="width:120px">TYPE DE DÉPENSE</td>
+    <td class="col-hdr" style="width:160px">ENSEIGNE / LIEU</td>
+    <td class="col-hdr" style="width:100px">MONTANT TTC (devises)</td>
+    <td class="col-hdr" style="width:90px">MONTANT EN EUROS</td>
+    <td class="col-hdr" style="width:40px">N° JUSTIF.</td>
+    <td class="col-hdr" style="width:130px">NOM DU JUSTIFICATIF</td>
+    <td class="col-hdr" style="width:120px">JUSTIFICATIF</td>
+  </tr>
+
+  <!-- Lignes -->
+  ${sorted.map((e,i) => `<tr class="${i%2===1?'alt':''}">
+    <td style="white-space:nowrap;text-align:center">${e.date}</td>
+    <td>${CAT_MAP[e.catId]?.lbl || e.catId}</td>
+    <td>${e.enseigne ? escHtml(e.enseigne) : ''}${e.desc ? ' — '+escHtml(e.desc) : ''}</td>
+    <td style="text-align:right;font-family:monospace">${Number(e.amount).toFixed(2)} ${e.currency || 'EUR'}</td>
+    <td style="text-align:right;font-family:monospace;font-weight:bold">${expenseEur(e).toFixed(2)} €</td>
+    <td style="text-align:center">${i+1}</td>
+    <td style="font-size:10px;color:#444">${e.recuName ? escHtml(e.recuName) : ''}</td>
+    <td style="text-align:center;padding:2px">${e.photo
+      ? `<img src="${e.photo}" style="max-width:110px;max-height:80px;display:block;margin:auto">`
+      : '<span style="color:#ccc;font-size:10px">—</span>'
+    }</td>
+  </tr>`).join('')}
+
+  <!-- Total -->
+  <tr class="total-row">
+    <td colspan="3" style="text-align:right;font-weight:bold">TOTAL</td>
+    <td style="text-align:right;font-family:monospace">${totalTtc.toFixed(2)}</td>
+    <td style="text-align:right;font-family:monospace;font-weight:bold">${totalEur.toFixed(2)} €</td>
+    <td colspan="3"></td>
+  </tr>
+
+  <!-- Spacer -->
+  <tr><td colspan="8" style="padding:8px;border:none"></td></tr>
+
+  <!-- Mention obligatoire -->
+  <tr>
+    <td colspan="8" style="font-size:10px;font-style:italic;color:#555;padding:6px 8px;background:#fffbe6;border:1px solid #e6d88a">
+      Joindre impérativement les tickets de caisse correspondants.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="8" style="font-size:10px;color:#444;padding:8px;line-height:1.5">
+      Je certifie sur l'honneur l'exactitude de tous les renseignements portés sur la présente note de frais,
+      sachant que toute erreur ou omission dans ces renseignements peut entraîner le rejet de la demande
+      ou le retrait de l'aide.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding:12px 8px">Date :</td>
+    <td colspan="5" style="padding:12px 8px">Nom Prénom, signature :</td>
+  </tr>
+
+</table>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url;
-  a.download = `remboursements_leem_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `note_de_frais_leem_${new Date().toISOString().slice(0,10)}.xls`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
-  toast(`CSV exporté — ${rembExp.length} dépenses ✓`);
+  toast(`Note de frais exportée — ${sorted.length} dépenses ✓`);
 }
 
 function toggleTheme() {
