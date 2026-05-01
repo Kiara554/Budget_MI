@@ -805,7 +805,7 @@ button { cursor: pointer; border: none; background: none; }
       </div>
       <div class="form-group">
         <label class="form-label">Catégorie</label>
-        <select class="form-select" id="f-cat" onchange="autoFillRecuName()"></select>
+        <select class="form-select" id="f-cat" onchange="autoFillRecuName();autoSetRemb()"></select>
       </div>
       <div class="form-group">
         <label class="form-label">Enseigne / Lieu</label>
@@ -2432,6 +2432,13 @@ function savePayMethods() {
   toast('Moyens de paiement sauvegardés !');
 }
 
+function autoSetRemb() {
+  if (editingId) return; // en mode édition on respecte le choix existant
+  const catId = document.getElementById('f-cat')?.value;
+  if (!catId) return;
+  setToggle('t-remb', getPlafond(catId) !== null);
+}
+
 function autoFillRecuName() {
   // Only auto-fill if user hasn't manually edited the field
   const recuEl = document.getElementById('f-recu-name');
@@ -2462,7 +2469,7 @@ function openAddModal() {
   const recuEl = document.getElementById('f-recu-name');
   recuEl.dataset.userEdited = '0';
   recuEl.value = '';
-  setToggle('t-remb', false);
+  autoSetRemb(); // pré-coche selon la catégorie par défaut
   setToggle('t-recu', false);
   updatePhotoPreview();
   openModal('modal-add');
