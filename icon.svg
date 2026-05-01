@@ -1,8 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#f5f7ff" rx="96"/>
-  <rect x="80" y="260" width="72" height="172" fill="#7c6af5" rx="8"/>
-  <rect x="192" y="180" width="72" height="252" fill="#7c6af5" rx="8"/>
-  <rect x="304" y="320" width="72" height="112" fill="#a78bfa" rx="8"/>
-  <rect x="416" y="220" width="72" height="212" fill="#10b981" rx="8"/>
-  <text x="256" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="72" fill="#7c6af5" letter-spacing="-2">MI</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.28)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.06)"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bg)" rx="108"/>
+  <!-- Subtle inner glow top-left -->
+  <circle cx="80" cy="80" r="160" fill="rgba(255,255,255,0.05)"/>
+  <!-- Coin ring -->
+  <circle cx="256" cy="205" r="118" fill="url(#coin)" stroke="rgba(255,255,255,0.22)" stroke-width="10"/>
+  <!-- Euro symbol -->
+  <text x="256" y="252" text-anchor="middle" dominant-baseline="middle"
+        font-family="Georgia,'Times New Roman',serif"
+        font-size="148" font-weight="700" fill="white">€</text>
+  <!-- Horizontal accent bars -->
+  <rect x="152" y="358" width="208" height="10" fill="rgba(255,255,255,0.35)" rx="5"/>
+  <!-- MI label -->
+  <text x="256" y="435" text-anchor="middle"
+        font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+        font-size="78" font-weight="900" fill="white" letter-spacing="14">MI</text>
 </svg>
