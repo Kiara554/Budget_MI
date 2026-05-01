@@ -882,7 +882,7 @@ button { cursor: pointer; border: none; background: none; }
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title">Nouveau retrait</div>
+      <div class="modal-title" id="modal-withdraw-title">Nouveau retrait</div>
       <button class="modal-close" onclick="closeModal('modal-withdraw')" aria-label="Fermer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
@@ -1256,6 +1256,7 @@ let _gistTimer  = null;
 let _syncState  = 'idle'; // idle | syncing | synced | error | disabled
 let _gistInfoOpen = false;
 let _syncIndicatorTimer = null;
+let editingWithdrawId = null;
 
 function debouncedGistSync() {
   if (!settings.githubPAT) return;
@@ -1773,7 +1774,10 @@ function renderDash() {
         <div style="font-size:13px;font-weight:600">${w.currency==='EUR'?'💶':'🪙'} ${Number(w.amount).toFixed(2)} ${w.currency}${w.note?` · <span style="color:var(--text3);font-weight:400">${escHtml(w.note)}</span>`:''}</div>
         <div style="font-size:11px;color:var(--text3)">${formatDate(w.date)}</div>
       </div>
-      <button onclick="deleteWithdraw('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:16px;line-height:1" title="Supprimer">✕</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button onclick="openEditWithdraw('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:15px;line-height:1" title="Modifier">✎</button>
+        <button onclick="deleteWithdraw('${w.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:0;font-size:16px;line-height:1" title="Supprimer">✕</button>
+      </div>
     </div>`).join('')}
   </div>` : ''}
   `;
@@ -2342,6 +2346,8 @@ function populateCatSelect() {
 //  RETRAITS
 // ══════════════════════════════════════════════
 function openWithdrawModal() {
+  editingWithdrawId = null;
+  document.getElementById('modal-withdraw-title').textContent = 'Nouveau retrait';
   document.getElementById('w-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('w-amount').value = '';
   document.getElementById('w-currency').value = 'TND';
@@ -2349,19 +2355,37 @@ function openWithdrawModal() {
   openModal('modal-withdraw');
 }
 
+function openEditWithdraw(id) {
+  const w = withdrawals.find(x => x.id === id);
+  if (!w) return;
+  editingWithdrawId = id;
+  document.getElementById('modal-withdraw-title').textContent = 'Modifier le retrait';
+  document.getElementById('w-date').value = w.date;
+  document.getElementById('w-amount').value = w.amount;
+  document.getElementById('w-currency').value = w.currency;
+  document.getElementById('w-note').value = w.note || '';
+  openModal('modal-withdraw');
+}
+
 function submitWithdraw() {
   const amount = parseFloat(document.getElementById('w-amount').value);
   const date   = document.getElementById('w-date').value;
   if (!date || isNaN(amount) || amount <= 0) { toast('Remplis la date et le montant'); return; }
-  withdrawals.push({
-    id:       Date.now().toString(36) + Math.random().toString(36).slice(2,5),
-    date,
-    amount,
+  const entry = {
+    date, amount,
     currency: document.getElementById('w-currency').value,
     note:     document.getElementById('w-note').value.trim(),
-  });
+  };
+  if (editingWithdrawId) {
+    const idx = withdrawals.findIndex(w => w.id === editingWithdrawId);
+    if (idx !== -1) withdrawals[idx] = { ...withdrawals[idx], ...entry };
+    toast('Retrait modifié ✓');
+  } else {
+    withdrawals.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2,5), ...entry });
+    toast('Retrait enregistré ✓');
+  }
+  editingWithdrawId = null;
   save(); closeModal('modal-withdraw'); renderDash();
-  toast('Retrait enregistré ✓');
 }
 
 function deleteWithdraw(id) {
