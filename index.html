@@ -1823,11 +1823,12 @@ function renderSettings() {
       </div>
 
       <div class="gist-info-box">
-        Sauvegarde <strong>automatique</strong> après chaque modification.<br>
-        Accessible depuis n'importe quel appareil avec ton token.<br><br>
-        <strong>1.</strong> Vas sur <strong>github.com → Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
-        <strong>2.</strong> Crée un token avec <strong>uniquement</strong> le scope <strong><code>gist</code></strong><br>
-        <strong>3.</strong> Colle-le ci-dessous
+        Sauvegarde <strong>automatique</strong> 4 s après chaque modification (dépenses, réglages, budgets, moyens de paiement, PIN).<br><br>
+        <strong>Nouvel appareil</strong> : colle ton token → <em>Connecter</em> → l'app retrouve ton Gist automatiquement et charge tes données.<br><br>
+        <strong>Créer un token :</strong><br>
+        <strong>1.</strong> github.com → ton avatar → <strong>Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
+        <strong>2.</strong> <em>Generate new token (classic)</em> · coche uniquement <strong><code>gist</code></strong><br>
+        <strong>3.</strong> Copie le token (<code>ghp_…</code>) et colle-le ci-dessous
       </div>
 
       <div class="form-group" style="margin-bottom:10px">
@@ -1860,15 +1861,16 @@ function renderSettings() {
 
       <div class="form-group" style="margin-top:12px;margin-bottom:6px">
         <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
-          <span>Gist ID (optionnel — pour pointer vers un Gist existant)</span>
+          <span>Gist ID</span>
           ${settings.githubGistId ? `<a href="https://gist.github.com/${settings.githubGistId}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none">Voir ↗</a>` : ''}
         </label>
-        <div style="display:flex;gap:8px">
-          <input class="form-input" type="text" id="s-gist-id"
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="s-gist-id"
             value="${settings.githubGistId||''}"
             placeholder="ex: 4a3b2c1d…"
-            autocomplete="off" spellcheck="false" style="font-family:var(--fm);font-size:12px">
-          <button class="btn btn-outline" style="flex-shrink:0;min-height:44px;padding:0 14px" onclick="saveGistId()">OK</button>
+            autocomplete="off" spellcheck="false"
+            style="flex:1;font-family:var(--fm);font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);outline:none;min-width:0">
+          <button onclick="saveGistId()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">OK</button>
         </div>
       </div>
     </div>
