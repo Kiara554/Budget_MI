@@ -43,6 +43,23 @@
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
 }
+html[data-theme="dark"] {
+  --bg: #0e1018;
+  --surface: #181b28;
+  --surface2: #22263a;
+  --border: #2d3250;
+  --shadow: 0 2px 12px rgba(0,0,0,.45);
+  --accent: #9d8fff;
+  --accent-pale: #1e1a3a;
+  --green-pale: #0c2318;
+  --red-pale: #280e18;
+  --orange-pale: #271708;
+  --text: #eaedf8;
+  --text2: #8e94b8;
+  --text3: #4e5470;
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] { background: #0e1018; }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html {
   font-size: 16px;
@@ -196,7 +213,7 @@ button { cursor: pointer; border: none; background: none; }
 .prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 .prog-label { font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
 .prog-amount { font-size: 12px; font-weight: 700; font-family: var(--fm); color: var(--text2); }
-.prog-bar-bg { height: 8px; border-radius: 8px; background: var(--surface2); overflow: hidden; }
+.prog-bar-bg { height: 8px; border-radius: 8px; background: var(--surface2); overflow: hidden; box-shadow: inset -2px 0 0 rgba(0,0,0,0.10); }
 .prog-bar { height: 100%; border-radius: 8px; transition: width .4s cubic-bezier(.4,0,.2,1); }
 .prog-sub { font-size: 11px; color: var(--text3); margin-top: 3px; display: flex; justify-content: space-between; }
 
@@ -263,12 +280,12 @@ button { cursor: pointer; border: none; background: none; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── MONTHLY BARS ── */
-.monthly-bars { display: flex; gap: 10px; align-items: flex-end; height: 80px; }
-.monthly-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-.monthly-bar-bg { width: 100%; flex: 1; background: var(--surface2); border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: flex-end; max-height: 60px; }
-.monthly-bar-fill { width: 100%; border-radius: 8px; transition: height .4s; }
-.monthly-bar-label { font-size: 11px; font-weight: 800; color: var(--text3); }
-.monthly-bar-val { font-size: 10px; font-weight: 700; color: var(--text2); font-family: var(--fm); }
+.monthly-bars { display: flex; gap: 12px; align-items: flex-end; height: 160px; padding: 0 4px; }
+.monthly-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.monthly-bar-bg { width: 100%; flex: 1; background: var(--surface2); border-radius: 10px; overflow: hidden; position: relative; display: flex; align-items: flex-end; }
+.monthly-bar-fill { width: 100%; border-radius: 10px; transition: height .5s cubic-bezier(.4,0,.2,1); }
+.monthly-bar-label { font-size: 12px; font-weight: 800; color: var(--text2); }
+.monthly-bar-val { font-size: 12px; font-weight: 700; color: var(--text2); font-family: var(--fm); min-height: 18px; }
 
 /* ── CASH TRACK ── */
 .cash-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
@@ -394,6 +411,17 @@ button { cursor: pointer; border: none; background: none; }
 .remb-row-val { font-size: 15px; font-weight: 800; font-family: var(--fm); color: var(--text); }
 .remb-row-quota { font-size: 11px; font-weight: 700; }
 
+/* ── THEME TOGGLE ── */
+.theme-toggle-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 800;
+  border: 1.5px solid var(--border);
+  background: var(--surface2); color: var(--text2);
+  cursor: pointer; transition: all .18s;
+}
+.theme-toggle-btn.dark { background: var(--accent-pale); color: var(--accent); border-color: var(--accent); }
+
 /* ── SETTINGS ── */
 .settings-section { margin-bottom: 20px; }
 .settings-section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: var(--text3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
@@ -474,6 +502,19 @@ button { cursor: pointer; border: none; background: none; }
   position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
   background: none; border: none; color: var(--text3); cursor: pointer; padding: 4px;
 }
+
+/* ── SYNC INDICATOR ── */
+.sync-indicator {
+  position: fixed; bottom: calc(var(--nav) + var(--safe-b) + 16px);
+  left: calc(16px + var(--safe-l));
+  padding: 6px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; line-height: 1;
+  opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 98;
+  max-width: calc(100vw - 96px);
+}
+.sync-indicator.syncing { opacity: 1; background: var(--accent-pale); color: var(--accent); }
+.sync-indicator.synced  { opacity: 1; background: var(--green-pale);  color: var(--green);  }
+.sync-indicator.error   { opacity: 1; background: var(--red-pale);    color: var(--red);    }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
@@ -876,6 +917,9 @@ button { cursor: pointer; border: none; background: none; }
 <!-- Toast -->
 <div id="toast"></div>
 
+<!-- Sync indicator (mobile) -->
+<div id="sync-indicator" class="sync-indicator"></div>
+
 </div><!-- #app -->
 
 <script>
@@ -884,7 +928,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v18';
+const APP_VERSION    = 'v19';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1210,6 +1254,8 @@ function load() {
 // ══════════════════════════════════════════════
 let _gistTimer  = null;
 let _syncState  = 'idle'; // idle | syncing | synced | error | disabled
+let _gistInfoOpen = false;
+let _syncIndicatorTimer = null;
 
 function debouncedGistSync() {
   if (!settings.githubPAT) return;
@@ -1221,7 +1267,6 @@ function debouncedGistSync() {
 function setSyncState(s) {
   _syncState = s;
   const el = document.getElementById('gist-status');
-  if (!el) return;
   const cfg = {
     idle:     { cls:'idle',    icon:'●', label:'En attente…'      },
     syncing:  { cls:'syncing', icon:'↻', label:'Sauvegarde…'      },
@@ -1230,8 +1275,29 @@ function setSyncState(s) {
     disabled: { cls:'idle',    icon:'○', label:'Sync désactivée'  },
   };
   const c = cfg[s] || cfg.idle;
-  el.className = `gist-status-badge ${c.cls}`;
-  el.textContent = `${c.icon} ${c.label}`;
+  if (el) {
+    el.className = `gist-status-badge ${c.cls}`;
+    el.textContent = `${c.icon} ${c.label}`;
+  }
+  // Badge flottant mobile
+  const ind = document.getElementById('sync-indicator');
+  if (ind) {
+    clearTimeout(_syncIndicatorTimer);
+    if (s === 'syncing') {
+      ind.className = 'sync-indicator syncing';
+      ind.textContent = '↻ Sync…';
+    } else if (s === 'synced') {
+      ind.className = 'sync-indicator synced';
+      ind.textContent = '✓ Sauvegardé';
+      _syncIndicatorTimer = setTimeout(() => { ind.className = 'sync-indicator'; }, 2500);
+    } else if (s === 'error') {
+      ind.className = 'sync-indicator error';
+      ind.textContent = '✕ Erreur sync';
+      _syncIndicatorTimer = setTimeout(() => { ind.className = 'sync-indicator'; }, 4000);
+    } else {
+      ind.className = 'sync-indicator';
+    }
+  }
 }
 
 function gistHeaders() {
@@ -1626,8 +1692,11 @@ function renderDash() {
           </span>
           <span class="prog-amount">${dashFmt(spent,0)}${budget>0?' / '+dashFmt(budget,0):''}</span>
         </div>
-        ${budget>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${p}%;background:${pColor}"></div></div>
-        <div class="prog-sub"><span>${p.toFixed(0)}%</span><span>${budget>0?'Reste: '+dashFmt(budget-spent,0):''}</span></div>`:
+        ${budget>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${Math.min(p,100)}%;background:${pColor}"></div></div>
+        <div class="prog-sub">${p>100
+          ? `<span style="color:var(--red);font-weight:800">⚠ Dépassement +${dashFmt(spent-budget,0)}</span><span>Budget: ${dashFmt(budget,0)}</span>`
+          : `<span>${p.toFixed(0)}%</span><span>Reste: ${dashFmt(budget-spent,0)}</span>`
+        }</div>`:
         `<div class="prog-sub"><span>Pas de budget fixé</span></div>`}
       </div>`;
     }).join('')}
@@ -1902,14 +1971,17 @@ function renderSettings() {
         ${settings.githubPAT ? (_syncState==='synced' ? '✓ Sauvegardé sur Gist' : '● Connecté') : '○ Non configuré'}
       </div>
 
-      <div class="gist-info-box">
+      <button onclick="_gistInfoOpen=!_gistInfoOpen;renderSettings()" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:10px;cursor:pointer">
+        <span>${_gistInfoOpen ? '▲' : '▼'}</span> Instructions de configuration
+      </button>
+      ${_gistInfoOpen ? `<div class="gist-info-box">
         Sauvegarde <strong>automatique</strong> 4 s après chaque modification (dépenses, réglages, budgets, moyens de paiement, PIN).<br><br>
         <strong>Nouvel appareil</strong> : colle ton token → <em>Connecter</em> → l'app retrouve ton Gist automatiquement et charge tes données.<br><br>
         <strong>Créer un token :</strong><br>
         <strong>1.</strong> github.com → ton avatar → <strong>Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
         <strong>2.</strong> <em>Generate new token (classic)</em> · coche uniquement <strong><code>gist</code></strong><br>
         <strong>3.</strong> Copie le token (<code>ghp_…</code>) et colle-le ci-dessous
-      </div>
+      </div>` : ''}
 
       <div class="form-group" style="margin-bottom:10px">
         <label class="form-label">Token GitHub (scope gist)</label>
@@ -2068,6 +2140,22 @@ function renderSettings() {
     <div class="settings-section-title">🗑️ Données</div>
     <div class="card">
       <button class="btn btn-red" onclick="confirmReset()">🗑️ Effacer toutes les dépenses</button>
+    </div>
+  </div>
+
+  <!-- Apparence -->
+  <div class="settings-section">
+    <div class="settings-section-title">🎨 Apparence</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Mode sombre</div>
+          <div style="font-size:12px;color:var(--text3)">Thème adapté pour la nuit</div>
+        </div>
+        <button class="theme-toggle-btn ${document.documentElement.getAttribute('data-theme')==='dark'?'dark':''}" onclick="toggleTheme()">
+          ${document.documentElement.getAttribute('data-theme')==='dark' ? '🌙 Activé' : '☀️ Désactivé'}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2681,6 +2769,8 @@ function render() {
 //  INIT
 // ══════════════════════════════════════════════
 function init() {
+  const savedTheme = localStorage.getItem('mi_theme');
+  if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
   load();
   populateCatSelect();
   render();
@@ -2703,6 +2793,14 @@ function init() {
       window.location.reload();
     });
   }
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('mi_theme', next);
+  renderSettings();
 }
 
 async function forceUpdate() {
