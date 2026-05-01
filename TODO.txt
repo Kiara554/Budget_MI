@@ -1,20 +1,61 @@
 TODO — MI Dépenses
 ==================
+Légende : [ ] à faire  [~] en cours  [x] fait
 
-FONCTIONNEL
------------
-[ ] Export CSV ou PDF (dossier remboursement LEEM)
-[ ] Modifier un retrait (actuellement delete/recréer seulement)
-[ ] Budgets configurables depuis l'app (BUDGET_MENSUEL, BUDGET_PREPA actuellement en dur dans le code)
 
-UX
---
-[ ] Mode sombre
-[ ] Tri / filtre dans la vue Remboursements (par statut, par catégorie)
-[ ] Retour visuel clair sur mobile pour la sync Gist
+── BUGS & FIXES RAPIDES ──────────────────────────────────────────────────────
 
-TECHNIQUE
----------
-[ ] Photos base64 dans localStorage → risque saturation (~5-10 Mo max) → envisager stockage externe
-[ ] Sync avec Google Photos (sauvegarde des justificatifs)
-[ ] Corriger mismatch version SW v18 / APP_VERSION v17
+[x] Corriger mismatch version : SW v18 / APP_VERSION v17 (désync cache)
+[x] Fix CSS filtre dépenses : mauvaise indentation / affichage raté
+[x] Fix CSS suivi cash : titres moches
+
+
+── AMÉLIORATIONS UX / VISUEL ─────────────────────────────────────────────────
+
+[x] Progression mensuelle (tableau de bord) : rendre le graphique plus visible / plus grand
+[x] Dépenses par catégorie : afficher clairement la ligne plafond budget sur le graphique
+[x] Réglages – section Gist : rendre la section dépliable (accordéon)
+[x] Mode sombre
+[x] Retour visuel clair sur mobile après sync Gist (spinner, toast de confirmation…)
+
+
+── NOUVELLES FONCTIONNALITÉS ──────────────────────────────────────────────────
+
+[x] Catégorie "Gains" : nouvelle section pour saisir remboursements perso (pas OPCO),
+    salaire, aides — affiché séparément des dépenses, avec un bilan "solde net"
+    (dépenses - gains) accessible depuis la vue gains ou le tableau de bord
+
+[x] Vue "Remboursable OPCO" : afficher la proportion du budget dépensé qui est
+    remboursable OPCO (à intégrer dans un onglet existant ou nouvel onglet dédié)
+
+[x] Auto-coche "remboursable" à la saisie : si la catégorie a un plafond OPCO
+    défini dans les réglages, pré-cocher automatiquement "remboursable" (modifiable
+    manuellement en cas d'exception)
+
+[x] Totaux globaux dans vue Budget & Remboursements : afficher calcul par mois ET
+    total stage (mai–août), avec mini-résumé 1 mois visible en un coup d'œil
+
+[x] Graphiques : revoir ou ajouter des graphiques plus pertinents (mobile-first,
+    priorité aux barres/donuts lisibles sur petit écran)
+
+[x] Tri / filtre dans la vue Remboursements (par statut, par catégorie)
+
+[x] Export PDF ou CSV du dossier remboursement LEEM
+
+[x] Modifier un retrait sans devoir le supprimer et le recréer
+
+[x] Budgets configurables depuis l'app (BUDGET_MENSUEL, BUDGET_PREPA actuellement
+    en dur dans le code)
+
+
+── TECHNIQUE ──────────────────────────────────────────────────────────────────
+
+[x] Changer l'icône app : design plus pro + ajouter un favicon pour l'onglet PC
+
+[x] Photos base64 dans localStorage : risque saturation (~5-10 Mo max)
+    → photos migrées vers IndexedDB, indicateur de stockage dans Réglages
+
+[x] Sync avec Google Photos pour sauvegarde des justificatifs
+    → téléchargement groupé JPEG depuis vue Remboursements (bouton "Photos")
+    → alerte à la saisie si remboursable sans reçu
+    → filtre "⚠️ Sans justificatif" dans vue Remboursements

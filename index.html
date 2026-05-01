@@ -753,10 +753,16 @@ button { cursor: pointer; border: none; background: none; }
   <div class="view-header">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div class="view-title">Remboursements</div>
-      <button onclick="exportRembExcel()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Excel
-      </button>
+      <div style="display:flex;gap:6px">
+        <button onclick="downloadAllPhotos()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Photos
+        </button>
+        <button onclick="exportRembExcel()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel
+        </button>
+      </div>
     </div>
     <div class="view-sub">Suivi des remboursements LEEM</div>
     <div class="filter-row" id="remb-filter-row" style="padding:6px 0 4px"></div>
@@ -979,7 +985,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v20';
+const APP_VERSION    = 'v21';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1291,16 +1297,69 @@ let detailId  = null;
 let editingId = null;
 
 // ══════════════════════════════════════════════
+//  PHOTO STORE — IndexedDB (évite saturation localStorage)
+// ══════════════════════════════════════════════
+let _photoDB = null;
+function openPhotoDB() {
+  if (_photoDB) return Promise.resolve(_photoDB);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('mi-photos', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('photos');
+    req.onsuccess = e => { _photoDB = e.target.result; resolve(_photoDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+function savePhotoIDB(id, dataUrl) {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(dataUrl, id);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function deletePhotoIDB(id) {
+  return openPhotoDB().then(db => new Promise(resolve => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(id);
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  }));
+}
+function clearAllPhotosIDB() {
+  return openPhotoDB().then(db => new Promise(resolve => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').clear();
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  }));
+}
+function getAllPhotosIDB() {
+  return openPhotoDB().then(db => new Promise(resolve => {
+    const tx = db.transaction('photos', 'readonly');
+    const result = {};
+    tx.objectStore('photos').openCursor().onsuccess = e => {
+      const cur = e.target.result;
+      if (cur) { result[cur.key] = cur.value; cur.continue(); } else resolve(result);
+    };
+    tx.onerror = () => resolve({});
+  }));
+}
+
+// ══════════════════════════════════════════════
 //  PERSISTENCE
 // ══════════════════════════════════════════════
 function save() {
-  localStorage.setItem('mi_expenses',    JSON.stringify(expenses));
+  // Photos stockées dans IndexedDB — on les retire du localStorage
+  const expForStorage = expenses.map(({ photo, ...rest }) => rest);
+  localStorage.setItem('mi_expenses',    JSON.stringify(expForStorage));
   localStorage.setItem('mi_withdrawals', JSON.stringify(withdrawals));
   localStorage.setItem('mi_gains',       JSON.stringify(gains));
   localStorage.setItem('mi_settings',    JSON.stringify(settings));
+  // Persistance des photos dans IndexedDB
+  expenses.forEach(e => {
+    if (e.photo?.startsWith('data:')) savePhotoIDB(e.id, e.photo).catch(console.warn);
+  });
   debouncedGistSync();
 }
-function load() {
+async function load() {
   try { expenses    = JSON.parse(localStorage.getItem('mi_expenses'))    || []; } catch(e){ expenses=[]; }
   try { withdrawals = JSON.parse(localStorage.getItem('mi_withdrawals')) || []; } catch(e){ withdrawals=[]; }
   try { gains       = JSON.parse(localStorage.getItem('mi_gains'))       || []; } catch(e){ gains=[]; }
@@ -1310,6 +1369,18 @@ function load() {
   } catch(e) {
     settings = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
   }
+  // Restauration des photos depuis IndexedDB
+  try {
+    const photos = await getAllPhotosIDB();
+    expenses.forEach(e => {
+      if (photos[e.id]) {
+        e.photo = photos[e.id];
+      } else if (e.photo?.startsWith('data:')) {
+        // Migration : photo encore en base64 dans localStorage → IndexedDB
+        savePhotoIDB(e.id, e.photo).catch(console.warn);
+      }
+    });
+  } catch (err) { console.warn('IndexedDB indisponible:', err); }
 }
 
 // ══════════════════════════════════════════════
@@ -1997,12 +2068,15 @@ function renderRemb() {
   buildTabs('remb-tabs', rembMo, `(m)=>{rembMo=m;renderRemb()}`);
 
   // Chips de filtre statut
+  const allRembForFilter = expenses.filter(e => e.remb);
+  const sansJustifCount  = allRembForFilter.filter(e => !e.recu && !e.photo).length;
   const filterCfg = [
-    { id:'all',      label:'Tout',        color:'' },
-    { id:'pending',  label:'En attente',  color:'var(--orange)' },
-    { id:'soumis',   label:'Soumis',      color:'var(--accent)' },
-    { id:'valide',   label:'Validé',      color:'var(--green)'  },
-    { id:'refuse',   label:'Refusé',      color:'var(--red)'    },
+    { id:'all',         label:'Tout',                                                  color:'' },
+    { id:'sans-justif', label:`⚠️ Sans justificatif${sansJustifCount?` (${sansJustifCount})`:''}`, color:'var(--red)' },
+    { id:'pending',     label:'En attente',  color:'var(--orange)' },
+    { id:'soumis',      label:'Soumis',      color:'var(--accent)' },
+    { id:'valide',      label:'Validé',      color:'var(--green)'  },
+    { id:'refuse',      label:'Refusé',      color:'var(--red)'    },
   ];
   const filterRow = document.getElementById('remb-filter-row');
   if (filterRow) {
@@ -2138,11 +2212,12 @@ function renderRemb() {
 
   ${(()=>{
     const matchFilter = e => {
-      if (rembFilter === 'all')     return true;
-      if (rembFilter === 'pending') return !e.rembDate && !e.rembStatus;
-      if (rembFilter === 'soumis')  return e.rembDate && !e.rembStatus;
-      if (rembFilter === 'valide')  return e.rembStatus === 'validé';
-      if (rembFilter === 'refuse')  return e.rembStatus === 'refusé';
+      if (rembFilter === 'all')         return true;
+      if (rembFilter === 'sans-justif') return !e.recu && !e.photo;
+      if (rembFilter === 'pending')     return !e.rembDate && !e.rembStatus;
+      if (rembFilter === 'soumis')      return e.rembDate && !e.rembStatus;
+      if (rembFilter === 'valide')      return e.rembStatus === 'validé';
+      if (rembFilter === 'refuse')      return e.rembStatus === 'refusé';
       return true;
     };
     const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
@@ -2393,6 +2468,14 @@ function renderSettings() {
     </div>
   </div>
 
+  <!-- Stockage -->
+  <div class="settings-section">
+    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3S3 13.66 3 12"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg> Stockage</div>
+    <div class="card" id="storage-info-card">
+      <div style="font-size:13px;color:var(--text3)">Calcul en cours…</div>
+    </div>
+  </div>
+
   <!-- Reset data -->
   <div class="settings-section">
     <div class="settings-section-title">🗑️ Données</div>
@@ -2442,6 +2525,55 @@ function renderSettings() {
   </div>
   `;
   renderPayMethodsList();
+  updateStorageInfo();
+}
+
+async function updateStorageInfo() {
+  const el = document.getElementById('storage-info-card');
+  if (!el) return;
+  try {
+    const photoCount = expenses.filter(e => e.photo).length;
+    let usedBytes = 0, quotaBytes = 0;
+    if (navigator.storage?.estimate) {
+      const est = await navigator.storage.estimate();
+      usedBytes  = est.usage  || 0;
+      quotaBytes = est.quota  || 0;
+    }
+    // localStorage fallback estimate
+    let lsBytes = 0;
+    for (const k of Object.keys(localStorage)) {
+      lsBytes += (localStorage.getItem(k)?.length || 0) * 2;
+    }
+    const usedMB  = usedBytes  ? (usedBytes  / 1048576).toFixed(1) : null;
+    const quotaMB = quotaBytes ? (quotaBytes / 1048576 / 1024).toFixed(1) : null;
+    const lsMB    = (lsBytes / 1048576).toFixed(2);
+    const pct     = quotaBytes ? Math.min(100, Math.round(usedBytes / quotaBytes * 100)) : null;
+    const barColor = pct > 80 ? 'var(--red)' : pct > 50 ? '#f59e0b' : 'var(--accent)';
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span style="color:var(--text2);font-weight:700">Photos enregistrées</span>
+        <span style="font-weight:800;color:var(--accent)">${photoCount} reçu${photoCount!==1?'s':''}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span style="color:var(--text2);font-weight:700">Données texte (localStorage)</span>
+        <span style="font-weight:700;color:var(--text)">${lsMB} Mo</span>
+      </div>
+      ${usedMB ? `
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
+        <span style="color:var(--text2);font-weight:700">Total app sur l'appareil</span>
+        <span style="font-weight:700;color:var(--text)">${usedMB} Mo${quotaMB ? ` / ${quotaMB} Go dispo` : ''}</span>
+      </div>
+      <div style="background:var(--border);border-radius:99px;height:8px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:99px;transition:width 0.4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:right">${pct}% utilisé</div>
+      ` : ''}
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">📦 Les photos sont stockées dans IndexedDB (espace séparé, beaucoup plus large que le localStorage).</div>
+    `;
+    if (pct > 80) toast('⚠️ Stockage à ' + pct + '% — pense à exporter tes données');
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:13px;color:var(--text3)">Impossible de lire le stockage.</div>`;
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -2597,6 +2729,7 @@ function importData(ev) {
 
 function confirmReset() {
   if(!confirm('Supprimer TOUTES les dépenses ? Cette action est irréversible.')) return;
+  clearAllPhotosIDB().catch(console.warn);
   expenses = [];
   save(); render();
   toast('Toutes les dépenses supprimées');
@@ -2807,6 +2940,7 @@ function submitAdd() {
 
   if(!date) return toast('Choisir une date');
   if(isNaN(amount)||amount<0) return toast('Montant invalide');
+  if(remb && !recu && !photoData) toast('⚠️ Remboursable sans reçu — pense à ajouter le justificatif');
 
   if(editingId) {
     const idx = expenses.findIndex(x=>x.id===editingId);
@@ -2921,6 +3055,7 @@ function openDetail(id) {
 
 function deleteExpense(id) {
   if(!confirm('Supprimer cette dépense ?')) return;
+  deletePhotoIDB(id).catch(console.warn);
   expenses = expenses.filter(e=>e.id!==id);
   save(); closeModal('modal-detail'); render();
   toast('Dépense supprimée');
@@ -3067,10 +3202,10 @@ function render() {
 // ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
-function init() {
+async function init() {
   const savedTheme = localStorage.getItem('mi_theme');
   if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
-  load();
+  await load();
   populateCatSelect();
   render();
   initLock();
@@ -3092,6 +3227,43 @@ function init() {
       window.location.reload();
     });
   }
+}
+
+async function downloadAllPhotos() {
+  const withPhoto = expenses.filter(e => e.remb && e.photo);
+  if (!withPhoto.length) { toast('Aucun reçu à télécharger'); return; }
+  toast(`Téléchargement de ${withPhoto.length} reçu${withPhoto.length>1?'s':''}…`);
+  const sorted = withPhoto.slice().sort((a,b) => a.date.localeCompare(b.date));
+  for (let i = 0; i < sorted.length; i++) {
+    const e   = sorted[i];
+    const cat = CATS.find(c => c.id === e.catId);
+    const num = String(i + 1).padStart(2, '0');
+    const label = (e.enseigne || cat?.lbl || e.catId).replace(/[^a-zA-Z0-9À-ÿ\-_]/g, '_').slice(0, 30);
+    const eur  = expenseEur(e).toFixed(0);
+    const filename = `${num}_${e.date}_${label}_${eur}EUR.jpg`;
+    // Convertir en JPEG si nécessaire (uniformise le format pour la pièce jointe)
+    const dataUrl = await toJpeg(e.photo);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+    await new Promise(r => setTimeout(r, 300)); // délai pour éviter le blocage navigateur
+  }
+  toast('✓ Tous les reçus téléchargés');
+}
+
+function toJpeg(dataUrl) {
+  return new Promise(resolve => {
+    if (dataUrl.startsWith('data:image/jpeg')) { resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.88));
+    };
+    img.src = dataUrl;
+  });
 }
 
 function exportRembExcel() {

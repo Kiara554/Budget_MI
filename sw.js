@@ -1,4 +1,4 @@
-const CACHE = 'mi-depenses-v20';
+const CACHE = 'mi-depenses-v21';
 const CORE = ['./','./index.html','./manifest.json','./icon.svg','./favicon.svg'];
 
 self.addEventListener('install', e => {
