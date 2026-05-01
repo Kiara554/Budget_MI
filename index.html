@@ -2115,17 +2115,19 @@ function renderRemb() {
   if (filterRow) filterRow.style.display = rembSubView==='depenses' ? '' : 'none';
   if (filterRow && rembSubView==='depenses') {
     const filterCfg = [
-      { id:'all',         label:'Tout', color:'' },
-      { id:'sans-justif', label:`⚠️ Sans justif${sansJustifCount?` (${sansJustifCount})`:''}`, color:'var(--red)' },
-      { id:'pending',     label:'En attente',  color:'var(--orange)' },
-      { id:'soumis',      label:'Soumis',      color:'var(--accent)' },
-      { id:'valide',      label:'Validé',      color:'var(--green)'  },
-      { id:'refuse',      label:'Refusé',      color:'var(--red)'    },
+      { id:'all',         label:'Tout',           color:'' },
+      { id:'sans-justif', label:`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Sans justif${sansJustifCount?` (${sansJustifCount})`:''}`, color:'var(--red)' },
+      { id:'soumettre',   label:'À soumettre',   color:'var(--orange)' },
+      { id:'soumis',      label:'Soumis',        color:'var(--accent)' },
+      { id:'non-soumis',  label:'Non soumis',    color:'var(--text2)'  },
+      { id:'rembourse',   label:'Remboursé',     color:'#0ea5e9'       },
+      { id:'valide',      label:'Validé',        color:'var(--green)'  },
+      { id:'refuse',      label:'Refusé',        color:'var(--red)'    },
     ];
     filterRow.innerHTML = filterCfg.map(f =>
       `<button class="filter-chip ${rembFilter===f.id?'active':''}"
         onclick="rembFilter='${f.id}';renderRemb()"
-        style="${rembFilter===f.id&&f.color?`background:${f.color};border-color:${f.color}`:''}"
+        style="display:inline-flex;align-items:center;gap:4px;${rembFilter===f.id&&f.color?`background:${f.color};border-color:${f.color}`:''}"
       >${f.label}</button>`
     ).join('');
   }
@@ -2133,18 +2135,20 @@ function renderRemb() {
   // Sous-onglets
   const subTabs = `
   <div style="display:flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px;margin-top:12px;margin-bottom:4px">
-    <button onclick="rembSubView='synthese';renderRemb()" style="flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
+    <button onclick="rembSubView='synthese';renderRemb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
       background:${rembSubView==='synthese'?'var(--surface)':'transparent'};
       color:${rembSubView==='synthese'?'var(--accent)':'var(--text3)'};
       box-shadow:${rembSubView==='synthese'?'0 1px 4px rgba(0,0,0,.08)':'none'}">
-      📊 Synthèse
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Synthèse
     </button>
-    <button onclick="rembSubView='depenses';renderRemb()" style="flex:1;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
+    <button onclick="rembSubView='depenses';renderRemb()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:800;transition:all .15s;
       background:${rembSubView==='depenses'?'var(--surface)':'transparent'};
       color:${rembSubView==='depenses'?'var(--accent)':'var(--text3)'};
       box-shadow:${rembSubView==='depenses'?'0 1px 4px rgba(0,0,0,.08)':'none'}">
-      🧾 Dépenses
-      ${sansJustifCount>0?`<span style="margin-left:4px;background:var(--red);color:#fff;font-size:10px;font-weight:900;padding:1px 6px;border-radius:20px">${sansJustifCount}</span>`:''}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+      Dépenses
+      ${sansJustifCount>0?`<span style="background:var(--red);color:#fff;font-size:10px;font-weight:900;padding:1px 6px;border-radius:20px">${sansJustifCount}</span>`:''}
     </button>
   </div>`;
 
@@ -2228,28 +2232,35 @@ function renderRemb() {
 
   } else {
     // ── Vue DÉPENSES ──
+    const getStatus = e => {
+      if (!e.rembStatus && e.rembDate) return 'soumis'; // rétrocompat
+      return e.rembStatus || 'soumettre';
+    };
     const matchFilter = e => {
+      const s = getStatus(e);
       if (rembFilter==='all')         return true;
       if (rembFilter==='sans-justif') return !e.recu && !e.photo;
-      if (rembFilter==='pending')     return !e.rembDate && !e.rembStatus;
-      if (rembFilter==='soumis')      return e.rembDate && !e.rembStatus;
-      if (rembFilter==='valide')      return e.rembStatus==='validé';
-      if (rembFilter==='refuse')      return e.rembStatus==='refusé';
-      return true;
+      return rembFilter === s;
     };
-    const sorted  = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
-    const pending = sorted.filter(e=>!e.rembDate&&!e.rembStatus);
-    const soumis  = sorted.filter(e=>e.rembDate&&!e.rembStatus);
-    const valide  = sorted.filter(e=>e.rembStatus==='validé');
-    const refuse  = sorted.filter(e=>e.rembStatus==='refusé');
+    const sorted     = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date)).filter(matchFilter);
+    const pending    = sorted.filter(e=>getStatus(e)==='soumettre');
+    const soumis     = sorted.filter(e=>getStatus(e)==='soumis');
+    const nonSoumis  = sorted.filter(e=>getStatus(e)==='non-soumis');
+    const valide     = sorted.filter(e=>getStatus(e)==='valide');
+    const refuse     = sorted.filter(e=>getStatus(e)==='refuse');
+    const rembourse  = sorted.filter(e=>getStatus(e)==='rembourse');
 
     function rembRow(e) {
       const eur = expenseEur(e);
-      const statusBadge = e.rembStatus==='validé'
-        ? `<span style="color:var(--green);font-weight:700">Validé</span>`
-        : e.rembStatus==='refusé'
-        ? `<span style="color:var(--red);font-weight:700">Refusé</span>`
-        : e.rembDate ? `<span style="color:var(--green)">Remboursé le ${formatDate(e.rembDate)}</span>` : '';
+      const STATUS_BADGES = {
+        soumettre:   `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:var(--orange);background:rgba(245,158,11,0.12);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>À soumettre</span>`,
+        soumis:      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--accent);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Soumis</span>`,
+        'non-soumis':`<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Non soumis</span>`,
+        valide:      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--green);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Validé</span>`,
+        refuse:      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Refusé</span>`,
+        rembourse:   `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:#0ea5e9;padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</span>`,
+      };
+      const statusBadge = STATUS_BADGES[getStatus(e)] || '';
       return `<div class="remb-row" onclick="openDetail('${e.id}')" style="cursor:pointer">
         <div class="remb-row-left">
           <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(e.catId,16)} ${e.enseigne?`<span style="font-weight:800">${escHtml(e.enseigne)}</span>${e.desc?` · ${escHtml(e.desc)}`:''}`:escHtml(e.desc)||'Sans desc.'}</div>
@@ -2276,11 +2287,15 @@ function renderRemb() {
       </div>`;
     }
 
+    const si = (path, w=13) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    const sTitle = (svg, label) => `<span style="display:inline-flex;align-items:center;gap:5px">${svg} ${label}</span>`;
     body.innerHTML = subTabs
-      + section('En attente de remboursement','',pending,'Aucune en attente ✓')
-      + section('Remboursé — en attente de validation','var(--accent)',soumis,'')
-      + section('Validées','var(--green)',valide,'')
-      + section('Refusées','var(--red)',refuse,'');
+      + section(sTitle(si('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'), 'À soumettre'), '', pending, 'Aucune à soumettre')
+      + section(sTitle(si('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>'), 'Soumis'), 'var(--accent)', soumis, '')
+      + section(sTitle(si('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'), 'Non soumis'), 'var(--text3)', nonSoumis, '')
+      + section(sTitle(si('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'), 'Remboursé'), '#0ea5e9', rembourse, '')
+      + section(sTitle(si('<polyline points="20 6 9 17 4 12"/>'), 'Validé'), 'var(--green)', valide, '')
+      + section(sTitle(si('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'), 'Refusé'), 'var(--red)', refuse, '');
   }
 }
 
@@ -3114,21 +3129,31 @@ function openDetail(id) {
     ` : ''}
 
     ${e.remb ? `<div style="margin-bottom:12px;background:var(--surface2);border-radius:12px;padding:12px 14px">
-      ${!e.rembDate
-        ? `<button class="btn btn-accent" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="markRemb('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Marquer comme remboursé</button>`
-        : e.rembStatus==='validé'
-        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursement validé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
-           <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Remettre en attente</button>`
-        : e.rembStatus==='refusé'
-        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--red);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Remboursement refusé</div>
-           <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Remettre en attente</button>`
-        : `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
-           <div class="btn-row" style="margin-top:8px">
-             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:var(--green)" onclick="markRembStatus('${e.id}','validé')">Validé</button>
-             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:var(--red)" onclick="markRembStatus('${e.id}','refusé')">Refusé</button>
-           </div>
-           <button class="btn btn-outline btn-sm" style="margin-top:6px;width:100%;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Annuler le remboursement</button>`
-      }
+      ${(()=>{
+        const st = (!e.rembStatus && e.rembDate) ? 'soumis' : (e.rembStatus || 'soumettre');
+        const reset = `<button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Remettre à soumettre</button>`;
+        if (st==='soumettre') return `
+          <div class="btn-row">
+            <button class="btn btn-accent" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="markRembStatus('${e.id}','soumis')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Soumettre</button>
+            <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;color:var(--text3)" onclick="markRembStatus('${e.id}','non-soumis')">Ne pas soumettre</button>
+          </div>`;
+        if (st==='soumis') return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Soumis${e.rembDate ? ' le '+new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) : ''}</div>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:var(--green)" onclick="markRembStatus('${e.id}','valide')">Validé</button>
+            <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:var(--red)" onclick="markRembStatus('${e.id}','refuse')">Refusé</button>
+            <button class="btn btn-outline btn-sm" style="flex:1;color:#0ea5e9;border-color:#0ea5e9" onclick="markRembStatus('${e.id}','rembourse')">Remboursé</button>
+          </div>${reset}`;
+        if (st==='non-soumis') return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text3);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Non soumis</div>${reset}`;
+        if (st==='valide') return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Validé</div>${reset}`;
+        if (st==='refuse') return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Refusé</div>${reset}`;
+        if (st==='rembourse') return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0ea5e9;margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</div>${reset}`;
+        return '';
+      })()}
     </div>` : ''}
 
     <div class="btn-row" style="margin-bottom:10px">
@@ -3150,18 +3175,16 @@ function deleteExpense(id) {
 }
 
 function markRemb(id) {
-  const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
-  expenses[idx].rembDate = new Date().toISOString().slice(0,10);
-  delete expenses[idx].rembStatus;
-  save(); openDetail(id); renderRemb();
-  toast('Marqué comme remboursé ✓');
+  markRembStatus(id, 'soumis');
 }
 
 function markRembStatus(id, status) {
   const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
   expenses[idx].rembStatus = status;
+  if (status === 'soumis') expenses[idx].rembDate = expenses[idx].rembDate || new Date().toISOString().slice(0,10);
+  const labels = { soumis:'Soumis ✓', 'non-soumis':'Non soumis', valide:'Validé ✓', refuse:'Refusé', rembourse:'Remboursé ✓' };
   save(); openDetail(id); renderRemb();
-  toast(status==='validé' ? 'Remboursement validé ✓' : 'Remboursement refusé');
+  toast(labels[status] || 'Statut mis à jour');
 }
 
 function markUnremb(id) {
@@ -3169,7 +3192,7 @@ function markUnremb(id) {
   delete expenses[idx].rembDate;
   delete expenses[idx].rembStatus;
   save(); openDetail(id); renderRemb();
-  toast('Remis en attente');
+  toast('Remis à soumettre');
 }
 
 // ══════════════════════════════════════════════
