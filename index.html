@@ -847,7 +847,7 @@ button { cursor: pointer; border: none; background: none; }
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v15';
+const APP_VERSION    = 'v16';
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
 const BUDGET_MENSUEL = 1465;
@@ -1783,35 +1783,41 @@ function renderRemb() {
 
   ${(()=>{
     const sorted = rembExp.slice().sort((a,b)=>b.date.localeCompare(a.date));
-    const pending = sorted.filter(e=>!e.rembDate);
-    const done    = sorted.filter(e=>!!e.rembDate);
+    const pending  = sorted.filter(e=>!e.rembDate);
+    const soumis   = sorted.filter(e=>e.rembDate && !e.rembStatus);
+    const valide   = sorted.filter(e=>e.rembStatus==='validé');
+    const refuse   = sorted.filter(e=>e.rembStatus==='refusé');
     function rembRow(e) {
       const eur = expenseEur(e);
+      const statusBadge = e.rembStatus==='validé'
+        ? `<span style="color:var(--green);font-weight:700">Validé</span>`
+        : e.rembStatus==='refusé'
+        ? `<span style="color:var(--red);font-weight:700">Refusé</span>`
+        : e.rembDate ? `<span style="color:var(--green)">Remboursé le ${formatDate(e.rembDate)}</span>` : '';
       return `<div class="remb-row" onclick="openDetail('${e.id}')" style="cursor:pointer">
         <div class="remb-row-left">
           <div class="remb-row-name" style="display:flex;align-items:center;gap:6px">${catIconHtml(e.catId,16)} ${e.enseigne?`<span style="font-weight:800">${escHtml(e.enseigne)}</span>${e.desc?` · ${escHtml(e.desc)}`:''}`:escHtml(e.desc)||'Sans desc.'}</div>
-          <div class="remb-row-sub" style="display:flex;align-items:center;gap:4px">${formatDate(e.date)}${e.rembDate?` · <span style="color:var(--green);font-weight:700">Remboursé le ${formatDate(e.rembDate)}</span>`:''} · ${e.recu?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Reçu`:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Pas de reçu`}</div>
+          <div class="remb-row-sub" style="display:flex;align-items:center;gap:4px">${formatDate(e.date)}${statusBadge?` · ${statusBadge}`:''} · ${e.recu?`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Reçu`:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Pas de reçu`}</div>
         </div>
         <div class="remb-row-right">
           <div class="remb-row-val">${fmtEur(eur,2)}</div>
         </div>
       </div>`;
     }
-    return `
-  <div class="card">
+    function section(title, color, list, emptyMsg) {
+      if(list.length===0 && color!=='') return '';
+      return `<div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>En attente de remboursement</span>
-      <span style="font-size:12px;color:var(--text3);font-weight:600">${pending.length} dépense${pending.length!==1?'s':''}</span>
+      <span${color?` style="color:${color}"`:''}}>${title}</span>
+      <span style="font-size:12px;color:var(--text3);font-weight:600">${list.length} dépense${list.length!==1?'s':''}</span>
     </div>
-    ${pending.length===0 ? '<div style="color:var(--text3);font-size:14px;text-align:center;padding:16px">Aucune en attente ✓</div>' : pending.map(rembRow).join('')}
-  </div>
-  ${done.length>0?`<div class="card">
-    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span style="color:var(--green)">Remboursées</span>
-      <span style="font-size:12px;color:var(--text3);font-weight:600">${done.length} dépense${done.length!==1?'s':''}</span>
-    </div>
-    ${done.map(rembRow).join('')}
-  </div>`:''}`;
+    ${list.length===0 ? `<div style="color:var(--text3);font-size:14px;text-align:center;padding:16px">${emptyMsg}</div>` : list.map(rembRow).join('')}
+  </div>`;
+    }
+    return section('En attente de remboursement','',pending,'Aucune en attente ✓')
+         + section('Remboursé — en attente de validation','var(--accent)',soumis,'')
+         + section('Validées','var(--green)',valide,'')
+         + section('Refusées','var(--red)',refuse,'');
   })()}
   `;
 }
@@ -2400,10 +2406,20 @@ function openDetail(id) {
     ` : ''}
 
     ${e.remb ? `<div style="margin-bottom:12px;background:var(--surface2);border-radius:12px;padding:12px 14px">
-      ${e.rembDate
-        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
-          <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Annuler le remboursement</button>`
-        : `<button class="btn btn-accent" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="markRemb('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Marquer comme remboursé</button>`
+      ${!e.rembDate
+        ? `<button class="btn btn-accent" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="markRemb('${e.id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Marquer comme remboursé</button>`
+        : e.rembStatus==='validé'
+        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursement validé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+           <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Remettre en attente</button>`
+        : e.rembStatus==='refusé'
+        ? `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--red);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Remboursement refusé</div>
+           <button class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Remettre en attente</button>`
+        : `<div style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--green);font-weight:700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Remboursé le ${new Date(e.rembDate).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div>
+           <div class="btn-row" style="margin-top:8px">
+             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:var(--green)" onclick="markRembStatus('${e.id}','validé')">Validé</button>
+             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:var(--red)" onclick="markRembStatus('${e.id}','refusé')">Refusé</button>
+           </div>
+           <button class="btn btn-outline btn-sm" style="margin-top:6px;width:100%;font-size:12px;color:var(--text3)" onclick="markUnremb('${e.id}')">Annuler le remboursement</button>`
       }
     </div>` : ''}
 
@@ -2427,15 +2443,24 @@ function deleteExpense(id) {
 function markRemb(id) {
   const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
   expenses[idx].rembDate = new Date().toISOString().slice(0,10);
+  delete expenses[idx].rembStatus;
   save(); openDetail(id); renderRemb();
   toast('Marqué comme remboursé ✓');
+}
+
+function markRembStatus(id, status) {
+  const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
+  expenses[idx].rembStatus = status;
+  save(); openDetail(id); renderRemb();
+  toast(status==='validé' ? 'Remboursement validé ✓' : 'Remboursement refusé');
 }
 
 function markUnremb(id) {
   const idx = expenses.findIndex(e=>e.id===id); if(idx<0) return;
   delete expenses[idx].rembDate;
+  delete expenses[idx].rembStatus;
   save(); openDetail(id); renderRemb();
-  toast('Remboursement annulé');
+  toast('Remis en attente');
 }
 
 // ══════════════════════════════════════════════
