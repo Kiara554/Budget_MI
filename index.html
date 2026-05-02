@@ -20,22 +20,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f5f7ff;
+  --bg: #f7f4ff;
   --surface: #ffffff;
-  --surface2: #eef1fb;
-  --border: #e2e8f6;
-  --shadow: 0 2px 12px rgba(99,118,175,.10);
-  --accent: #7c6af5;
-  --accent-pale: #ede9fe;
-  --green: #10b981;
-  --green-pale: #d1fae5;
-  --red: #f43f5e;
-  --red-pale: #ffe4e6;
-  --orange: #fb923c;
-  --orange-pale: #fff7ed;
-  --text: #1a1d2e;
-  --text2: #5c6282;
-  --text3: #a0a8c0;
+  --surface2: #f0ecff;
+  --border: #e5dff8;
+  --shadow: 0 2px 16px rgba(130,100,220,.08);
+  --accent: #9b87f5;
+  --accent-pale: #ede9ff;
+  --green: #4dbf98;
+  --green-pale: #dff7ee;
+  --red: #ee7096;
+  --red-pale: #ffe8f0;
+  --orange: #f5a96a;
+  --orange-pale: #fff3e6;
+  --blue: #74b3f5;
+  --blue-pale: #e6f2ff;
+  --text: #2c2548;
+  --text2: #6b5f90;
+  --text3: #b0a8cc;
   --fd: 'Nunito', sans-serif;
   --fm: 'DM Mono', monospace;
   --nav: 72px;
@@ -45,28 +47,29 @@
   --safe-r: env(safe-area-inset-right, 0px);
 }
 html[data-theme="dark"] {
-  --bg: #0e1018;
-  --surface: #181b28;
-  --surface2: #22263a;
-  --border: #2d3250;
-  --shadow: 0 2px 12px rgba(0,0,0,.45);
-  --accent: #9d8fff;
-  --accent-pale: #1e1a3a;
-  --green-pale: #0c2318;
-  --red-pale: #280e18;
-  --orange-pale: #271708;
-  --text: #eaedf8;
-  --text2: #8e94b8;
-  --text3: #4e5470;
+  --bg: #16122a;
+  --surface: #201b35;
+  --surface2: #2a2445;
+  --border: #3a3260;
+  --shadow: 0 2px 16px rgba(0,0,0,.4);
+  --accent: #b8a8ff;
+  --accent-pale: #221c40;
+  --green-pale: #0e2820;
+  --red-pale: #2c1020;
+  --orange-pale: #2a1a08;
+  --blue-pale: #0e1e38;
+  --text: #eceaff;
+  --text2: #9e96c8;
+  --text3: #5e5880;
 }
 html[data-theme="dark"] body,
-html[data-theme="dark"] { background: #0e1018; }
+html[data-theme="dark"] { background: #16122a; }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
-  background: #f5f7ff;
+  background: #f7f4ff;
 }
 body {
   font-family: var(--fd);
@@ -167,12 +170,12 @@ button { cursor: pointer; border: none; background: none; }
   width: 56px; height: 56px; border-radius: 18px;
   background: var(--accent); color: #fff;
   font-size: 28px; line-height: 1;
-  box-shadow: 0 4px 20px rgba(124,106,245,.45);
+  box-shadow: 0 4px 20px rgba(155,135,245,.38);
   display: flex; align-items: center; justify-content: center;
   z-index: 99; transition: transform .15s, box-shadow .15s;
   border: none; cursor: pointer;
 }
-#fab:active { transform: scale(.93); box-shadow: 0 2px 10px rgba(124,106,245,.35); }
+#fab:active { transform: scale(.93); box-shadow: 0 2px 10px rgba(155,135,245,.28); }
 
 /* ── CARDS ── */
 .card {
@@ -200,14 +203,16 @@ button { cursor: pointer; border: none; background: none; }
 .stat-value { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1.1; }
 .stat-value.mono { font-family: var(--fm); font-size: 19px; }
 .stat-small { font-size: 11px; color: var(--text3); margin-top: 2px; font-weight: 600; }
-.stat-card.green-bg { background: var(--green-pale); border-color: #a7f3d0; }
+.stat-card.green-bg { background: var(--green-pale); border-color: #b8eedd; }
 .stat-card.green-bg .stat-value { color: var(--green); }
-.stat-card.red-bg { background: var(--red-pale); border-color: #fda4af; }
+.stat-card.red-bg { background: var(--red-pale); border-color: #f4b8ce; }
 .stat-card.red-bg .stat-value { color: var(--red); }
-.stat-card.accent-bg { background: var(--accent-pale); border-color: #c4b5fd; }
+.stat-card.accent-bg { background: var(--accent-pale); border-color: #ccc2f8; }
 .stat-card.accent-bg .stat-value { color: var(--accent); }
-.stat-card.orange-bg { background: var(--orange-pale); border-color: #fed7aa; }
+.stat-card.orange-bg { background: var(--orange-pale); border-color: #f8d4b0; }
 .stat-card.orange-bg .stat-value { color: var(--orange); }
+.stat-card.blue-bg { background: var(--blue-pale); border-color: #b8d8f8; }
+.stat-card.blue-bg .stat-value { color: var(--blue); }
 
 /* ── PROGRESS BAR ── */
 .prog-wrap { margin-bottom: 10px; }
@@ -395,12 +400,12 @@ button { cursor: pointer; border: none; background: none; }
   min-height: 52px; display: inline-flex; align-items: center; justify-content: center;
   gap: 8px; transition: all .15s; border: none; cursor: pointer; width: 100%;
 }
-.btn-accent { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(124,106,245,.35); }
+.btn-accent { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(155,135,245,.30); }
 .btn-accent:active { transform: scale(.97); }
 .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text2); }
 .btn-outline:active { background: var(--surface2); }
-.btn-red { background: var(--red-pale); color: var(--red); border: 1.5px solid #fda4af; }
-.btn-green { background: var(--green-pale); color: var(--green); border: 1.5px solid #6ee7b7; }
+.btn-red { background: var(--red-pale); color: var(--red); border: 1.5px solid #f4b8ce; }
+.btn-green { background: var(--green-pale); color: var(--green); border: 1.5px solid #a8e4cc; }
 .btn-sm {
   padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 800;
   min-height: 38px; display: inline-flex; align-items: center; gap: 6px;
@@ -463,7 +468,7 @@ button { cursor: pointer; border: none; background: none; }
 
 /* ── ABOUT SYNC ── */
 .sync-box {
-  background: var(--accent-pale); border: 1.5px solid #c4b5fd;
+  background: var(--accent-pale); border: 1.5px solid #ccc2f8;
   border-radius: 14px; padding: 16px; font-size: 13px; color: var(--text2);
   line-height: 1.6; font-weight: 600;
 }
@@ -1144,22 +1149,22 @@ function getPayMethods() {
 }
 
 const CAT_COLORS = {
-  logement:   {bg:'#fecdd3', text:'#9f1239', bar:'#fb7185'},
-  transport:  {bg:'#fed7aa', text:'#9a3412', bar:'#fb923c'},
-  achats:     {bg:'#fef08a', text:'#713f12', bar:'#facc15'},
-  transp_loc: {bg:'#bbf7d0', text:'#14532d', bar:'#4ade80'},
-  alim:       {bg:'#bae6fd', text:'#0c4a6e', bar:'#38bdf8'},
-  sorties:    {bg:'#ddd6fe', text:'#4c1d95', bar:'#a78bfa'},
-  sante:      {bg:'#fbcfe8', text:'#831843', bar:'#f472b6'},
-  telecom:    {bg:'#a5f3fc', text:'#164e63', bar:'#22d3ee'},
-  shopping:   {bg:'#fde68a', text:'#78350f', bar:'#fbbf24'},
-  voyages:    {bg:'#a7f3d0', text:'#064e3b', bar:'#34d399'},
-  abo:        {bg:'#c7d2fe', text:'#312e81', bar:'#818cf8'},
-  frais_banq: {bg:'#e2e8f0', text:'#334155', bar:'#94a3b8'},
-  admin:      {bg:'#fed7aa', text:'#7c2d12', bar:'#f97316'},
-  cash:       {bg:'#dcfce7', text:'#14532d', bar:'#86efac'},
-  pourboires: {bg:'#fce7f3', text:'#831843', bar:'#f9a8d4'},
-  divers:     {bg:'#f1f5f9', text:'#475569', bar:'#cbd5e1'},
+  logement:   {bg:'#ffd8e0', text:'#a03055', bar:'#f0a0b8'},
+  transport:  {bg:'#ffe4cc', text:'#a04820', bar:'#f0b080'},
+  achats:     {bg:'#fef5c0', text:'#806518', bar:'#e8cc70'},
+  transp_loc: {bg:'#ccf5de', text:'#2a7048', bar:'#78d4a0'},
+  alim:       {bg:'#d4ecff', text:'#1a5888', bar:'#84c0f0'},
+  sorties:    {bg:'#e8e0ff', text:'#5028a0', bar:'#b098f4'},
+  sante:      {bg:'#ffd8f0', text:'#902060', bar:'#f098c4'},
+  telecom:    {bg:'#c8f2fc', text:'#146470', bar:'#6cd0e8'},
+  shopping:   {bg:'#fff0b8', text:'#804810', bar:'#e8c040'},
+  voyages:    {bg:'#c8f5e0', text:'#1a6038', bar:'#68cca0'},
+  abo:        {bg:'#dce0ff', text:'#3030a8', bar:'#8e98f0'},
+  frais_banq: {bg:'#eaeff5', text:'#405878', bar:'#a8b8cc'},
+  admin:      {bg:'#ffe0d0', text:'#904020', bar:'#f0a888'},
+  cash:       {bg:'#d8faec', text:'#286840', bar:'#74d898'},
+  pourboires: {bg:'#ffe0f0', text:'#981060', bar:'#f098bc'},
+  divers:     {bg:'#eeeaff', text:'#5858a0', bar:'#c0b8e4'},
 };
 
 // ══════════════════════════════════════════════
@@ -1931,7 +1936,7 @@ function renderDash() {
         const budget = monthlyBudgets[i];
         const h      = maxMonthly>0 ? Math.max(4,(v/maxMonthly)*100) : 4;
         const bLine  = maxMonthly>0 ? (budget/maxMonthly)*100 : 0;
-        const colors = ['#fb7185','#38bdf8','#4ade80','#a78bfa'];
+        const colors = ['#f0a0b8','#84c0f0','#78d4a0','#b098f4'];
         const col    = v > budget ? 'var(--red)' : colors[i];
         return `<div class="monthly-bar-wrap">
           <div class="monthly-bar-val" style="color:${v>budget?'var(--red)':'var(--text2)'}">${v>0?dashFmt(v,0):''}</div>
@@ -2142,7 +2147,7 @@ function renderRemb() {
       { id:'soumettre',   label:'À soumettre',   color:'var(--orange)' },
       { id:'soumis',      label:'Soumis',        color:'var(--accent)' },
       { id:'non-soumis',  label:'Non soumis',    color:'var(--text2)'  },
-      { id:'rembourse',   label:'Remboursé',     color:'#0ea5e9'       },
+      { id:'rembourse',   label:'Remboursé',     color:'var(--blue)'       },
       { id:'valide',      label:'Validé',        color:'var(--green)'  },
       { id:'refuse',      label:'Refusé',        color:'var(--red)'    },
     ];
@@ -2218,25 +2223,24 @@ function renderRemb() {
     <div class="card">
       <div class="card-title">Récap par mois</div>
       <div style="display:flex;gap:10px;margin-bottom:10px">
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block"></span>Remboursable</span>
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></span>Eligible OPCO</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);opacity:0.3;display:inline-block"></span>Remboursable</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></span>Éligible OPCO</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px">
         ${MONTH_DATES.map((ym,i)=>{
           const v=monthlyTotals[i], opco=monthlyOpco[i];
           const maxV=Math.max(...monthlyTotals,1);
-          const col=['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
           const pctV=(v/maxV*100).toFixed(1), pctOpco=(opco/maxV*100).toFixed(1);
           return `<div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
               <span style="font-size:13px;font-weight:700;color:var(--text)">${MONTH_LABELS[i]}</span>
               <span style="display:flex;gap:8px;align-items:center">
-                <span style="font-size:12px;font-weight:700;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
+                <span style="font-size:12px;font-weight:700;font-family:var(--fm);color:var(--accent)">${v>0?fmtEur(v,2):'—'}</span>
                 ${opco<v?`<span style="font-size:12px;font-weight:800;font-family:var(--fm);color:var(--green)">${fmtEur(opco,2)}</span>`:''}
               </span>
             </div>
             ${v>0?`<div class="prog-bar-bg" style="height:7px;position:relative">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pctV}%;background:${col};opacity:0.25;border-radius:99px"></div>
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctV}%;background:var(--accent);opacity:0.25;border-radius:99px"></div>
               <div style="position:absolute;left:0;top:0;height:100%;width:${pctOpco}%;background:var(--green);border-radius:99px"></div>
             </div>`:''}
           </div>`;
@@ -2295,7 +2299,7 @@ function renderRemb() {
         'non-soumis':`<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Non soumis</span>`,
         valide:      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--green);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Validé</span>`,
         refuse:      `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Refusé</span>`,
-        rembourse:   `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:#0ea5e9;padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</span>`,
+        rembourse:   `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:800;color:#fff;background:var(--blue);padding:2px 7px;border-radius:20px"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</span>`,
       };
       const statusBadge = STATUS_BADGES[getStatus(e)] || '';
       return `<div class="remb-row" onclick="openDetail('${e.id}')" style="cursor:pointer">
@@ -2330,7 +2334,7 @@ function renderRemb() {
       + section(sTitle(si('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'), 'À soumettre'), '', pending, 'Aucune à soumettre')
       + section(sTitle(si('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>'), 'Soumis'), 'var(--accent)', soumis, '')
       + section(sTitle(si('<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'), 'Non soumis'), 'var(--text3)', nonSoumis, '')
-      + section(sTitle(si('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'), 'Remboursé'), '#0ea5e9', rembourse, '')
+      + section(sTitle(si('<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'), 'Remboursé'), 'var(--blue)', rembourse, '')
       + section(sTitle(si('<polyline points="20 6 9 17 4 12"/>'), 'Validé'), 'var(--green)', valide, '')
       + section(sTitle(si('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'), 'Refusé'), 'var(--red)', refuse, '');
   }
@@ -3204,7 +3208,7 @@ function openDetail(id) {
           <div class="btn-row">
             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--green);border-color:var(--green)" onclick="markRembStatus('${e.id}','valide')">Validé</button>
             <button class="btn btn-outline btn-sm" style="flex:1;color:var(--red);border-color:var(--red)" onclick="markRembStatus('${e.id}','refuse')">Refusé</button>
-            <button class="btn btn-outline btn-sm" style="flex:1;color:#0ea5e9;border-color:#0ea5e9" onclick="markRembStatus('${e.id}','rembourse')">Remboursé</button>
+            <button class="btn btn-outline btn-sm" style="flex:1;color:var(--blue);border-color:var(--blue)" onclick="markRembStatus('${e.id}','rembourse')">Remboursé</button>
           </div>${reset}`;
         if (st==='non-soumis') return `
           <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text3);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Non soumis</div>${reset}`;
@@ -3213,7 +3217,7 @@ function openDetail(id) {
         if (st==='refuse') return `
           <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Refusé</div>${reset}`;
         if (st==='rembourse') return `
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#0ea5e9;margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</div>${reset}`;
+          <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Remboursé</div>${reset}`;
         return '';
       })()}
     </div>` : ''}
