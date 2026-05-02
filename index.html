@@ -2111,10 +2111,11 @@ function renderRemb() {
   const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
   const allExpMo     = rembMo==='all' ? expenses.filter(e=>e.catId!=='cash') : expenses.filter(e=>e.catId!=='cash'&&getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
   const totalDepense = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
-  // Chaque dépense contribue au max son plafond de catégorie (si défini)
-  const totalRembCapped = rembExp.reduce((s,e)=>{
-    const p = getPlafond(e.catId);
-    return s + (p !== null ? Math.min(expenseEur(e), p) : expenseEur(e));
+  // Plafonnement par total de catégorie (pas par dépense individuelle)
+  const totalRembCapped = CATS.reduce((s,c)=>{
+    const p = getPlafond(c.id);
+    const catTotal = rembExp.filter(e=>e.catId===c.id).reduce((t,e)=>t+expenseEur(e),0);
+    return s + (p !== null ? Math.min(catTotal, p) : catTotal);
   }, 0);
   // Le plafond effectif est le min entre la somme des plafonds catégories et le max OPCO global
   const opcoEffectiveMax = plafondTotal > 0 ? Math.min(plafondTotal, OPCO_GLOBAL_MAX) : OPCO_GLOBAL_MAX;
@@ -2122,6 +2123,9 @@ function renderRemb() {
   const pctRemb      = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
   const pctPlafond   = opcoEffectiveMax>0 ? totalRembCapped/opcoEffectiveMax*100 : 0;
   const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
+  const monthlyOpco   = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>{
+    const p=getPlafond(e.catId); return s+(p!==null?Math.min(expenseEur(e),p):expenseEur(e));
+  },0));
   const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
     const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
     const plafond=getPlafond(c.id), quota=Math.min(total,plafond);
@@ -2213,21 +2217,36 @@ function renderRemb() {
     ${rembMo==='all' ? `
     <div class="card">
       <div class="card-title">Récap par mois</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block"></span>Remboursable</span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></span>Eligible OPCO</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
         ${MONTH_DATES.map((ym,i)=>{
-          const v=monthlyTotals[i], pct=plafondTotal>0?Math.min(v/plafondTotal*100,100):0;
+          const v=monthlyTotals[i], opco=monthlyOpco[i];
+          const maxV=Math.max(...monthlyTotals,1);
           const col=['#fb7185','#38bdf8','#4ade80','#a78bfa'][i];
+          const pctV=(v/maxV*100).toFixed(1), pctOpco=(opco/maxV*100).toFixed(1);
           return `<div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
               <span style="font-size:13px;font-weight:700;color:var(--text)">${MONTH_LABELS[i]}</span>
-              <span style="font-size:13px;font-weight:800;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
+              <span style="display:flex;gap:8px;align-items:center">
+                <span style="font-size:12px;font-weight:700;font-family:var(--fm);color:${col}">${v>0?fmtEur(v,2):'—'}</span>
+                ${opco<v?`<span style="font-size:12px;font-weight:800;font-family:var(--fm);color:var(--green)">${fmtEur(opco,2)}</span>`:''}
+              </span>
             </div>
-            ${v>0?`<div class="prog-bar-bg"><div class="prog-bar" style="width:${pct}%;background:${col}"></div></div>`:''}
+            ${v>0?`<div class="prog-bar-bg" style="height:7px;position:relative">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctV}%;background:${col};opacity:0.25;border-radius:99px"></div>
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctOpco}%;background:var(--green);border-radius:99px"></div>
+            </div>`:''}
           </div>`;
         }).join('')}
-        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:4px">
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:2px">
           <span style="font-size:13px;font-weight:800;color:var(--text)">Total stage</span>
-          <span style="font-size:15px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(monthlyTotals.reduce((s,v)=>s+v,0),2)}</span>
+          <span style="display:flex;gap:10px;align-items:center">
+            <span style="font-size:13px;font-weight:800;font-family:var(--fm);color:var(--accent)">${fmtEur(monthlyTotals.reduce((s,v)=>s+v,0),2)}</span>
+            <span style="font-size:13px;font-weight:900;font-family:var(--fm);color:var(--green)">${fmtEur(montantRecup,2)} OPCO</span>
+          </span>
         </div>
       </div>
     </div>` : ''}
