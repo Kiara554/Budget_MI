@@ -73,3 +73,53 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     catégories) et "Dépenses" (liste filtrée par statut/mois, badge sans justif)
 
 [x] Badge "Sans reçu" rouge pill dans la liste des remboursements
+
+[x] Thème pastel cohérent (light + dark mode revu)
+
+
+── À FAIRE ───────────────────────────────────────────────────────────────────
+
+── UX MOBILE ──────────────────────────────────────────────────────────────────
+
+[ ] Badges catégories en mode sombre : les couleurs pastel claires sont
+    illisibles sur fond sombre — adapter bg/text des badges au thème
+
+[ ] Swipe entre les mois (navigation par geste)
+
+[ ] Retour haptique sur les actions importantes (ajout, suppression, sync)
+
+
+── DONNÉES & CALCULS ──────────────────────────────────────────────────────────
+
+[ ] Taux de change TND éditable depuis les réglages (actuellement figé à 3.38)
+    → ou récupération automatique via une API de taux
+
+[ ] Taux USD hardcodé (0.92 approximatif) — même traitement que TND
+
+[ ] OPCO par mois : approximation per-expense vs per-category-total
+    → si 400€ en mai dans une catégorie plafonnée 300€, mai = 300€ mais
+       le surplus n'est pas compensé sur les autres mois
+
+
+── FONCTIONNALITÉS ────────────────────────────────────────────────────────────
+
+[ ] Alertes budget : notification / indicateur visuel quand on approche
+    du plafond d'une catégorie (ex. : 80% atteint)
+
+[ ] Récurrence automatique : appliquer un modèle à date fixe sans action manuelle
+
+[ ] Export PDF dossier OPCO complet (justificatifs + tableau récap)
+    → actuellement : CSV + téléchargement photos séparés
+
+[ ] Graphique évolution solde net (dépenses − gains) dans le temps
+
+
+── TECHNIQUE ──────────────────────────────────────────────────────────────────
+
+[ ] Sync Gist : inclure les photos IndexedDB dans la sauvegarde cloud
+    → actuellement les justificatifs sont perdus si on change d'appareil
+
+[ ] Gestion de conflit Gist : si modif sur deux appareils simultanément,
+    pas de résolution → risque de perte de données
+
+[ ] index.html ~3600 lignes : envisager découpage en modules JS séparés
