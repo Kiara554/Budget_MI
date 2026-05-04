@@ -100,6 +100,7 @@ button { cursor: pointer; border: none; background: none; }
   background: var(--bg);
   position: sticky; top: 0; z-index: 10;
 }
+.view-header .month-tabs { margin: 0 -20px; }
 .view-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; color: var(--text); }
 .view-sub { font-size: 13px; color: var(--text3); margin-bottom: 12px; }
 .view-body {
@@ -756,8 +757,8 @@ button { cursor: pointer; border: none; background: none; }
         <span id="dc-tnd" class="ct-opt">TND</span>
       </div>
     </div>
+    <div class="month-tabs" id="dash-tabs"></div>
   </div>
-  <div class="month-tabs" id="dash-tabs"></div>
   <div class="view-body" id="dash-body"></div>
 </div>
 
@@ -772,8 +773,9 @@ button { cursor: pointer; border: none; background: none; }
       </div>
       <div class="filter-row" id="cat-filter-row"></div>
     </div>
+    <div id="list-total-bar" style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 4px;font-size:12px;font-weight:700;color:var(--text2);background:var(--bg);border-bottom:1px solid var(--border);margin:0 -20px;padding-left:20px;padding-right:20px"></div>
+    <div class="month-tabs" id="list-tabs"></div>
   </div>
-  <div class="month-tabs" id="list-tabs"></div>
   <div class="view-body" id="list-body"></div>
 </div>
 
@@ -783,20 +785,18 @@ button { cursor: pointer; border: none; background: none; }
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div class="view-title">Remboursements</div>
       <div style="display:flex;gap:6px">
-        <button onclick="downloadAllPhotos()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          Photos
+        <button onclick="downloadAllPhotos()" title="Télécharger les photos" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
-        <button onclick="exportRembExcel()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Excel
+        <button onclick="exportRembExcel()" title="Exporter Excel" style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
       </div>
     </div>
     <div class="view-sub">Suivi des remboursements LEEM</div>
     <div class="filter-row" id="remb-filter-row" style="padding:6px 0 4px"></div>
+    <div class="month-tabs" id="remb-tabs"></div>
   </div>
-  <div class="month-tabs" id="remb-tabs"></div>
   <div class="view-body" id="remb-body"></div>
 </div>
 
@@ -811,8 +811,8 @@ button { cursor: pointer; border: none; background: none; }
       </button>
     </div>
     <div class="view-sub">Retraits et solde disponible</div>
+    <div class="month-tabs" id="cash-tabs"></div>
   </div>
-  <div class="month-tabs" id="cash-tabs"></div>
   <div class="view-body" id="cash-body"></div>
 </div>
 
@@ -917,11 +917,16 @@ button { cursor: pointer; border: none; background: none; }
       </div>
       <div class="form-group" style="margin-top:14px">
         <label class="form-label" style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Justificatif</label>
-        <div class="photo-preview" id="photo-preview" onclick="triggerPhoto('photo-input-main')">
-          <span class="photo-icon">📷</span>
-          <span class="photo-hint">Appuyer pour ajouter</span>
+        <div class="photo-preview" id="photo-preview" onclick="" style="cursor:default">
+          <span class="photo-icon">📎</span>
+          <span class="photo-hint">Ajouter un justificatif</span>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" onclick="event.stopPropagation();document.getElementById('photo-input-cam').click()" style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">📷 Photo</button>
+            <button type="button" onclick="event.stopPropagation();document.getElementById('photo-input-file').click()" style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer">📁 Fichier</button>
+          </div>
         </div>
-        <input type="file" id="photo-input-main" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'photo-input-main')">
+        <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event,'photo-input-cam')">
+        <input type="file" id="photo-input-file" accept="image/*,.pdf,.heic,.heif" style="display:none" onchange="handlePhoto(event,'photo-input-file')">
       </div>
       <div class="form-group">
         <label class="form-label">Nom du reçu</label>
@@ -984,7 +989,7 @@ button { cursor: pointer; border: none; background: none; }
 </div>
 
 <!-- Hidden input for adding photo after the fact -->
-<input type="file" id="photo-input-after" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoAfter(event)">
+<input type="file" id="photo-input-after" accept="image/*,.pdf,.heic,.heif" style="display:none" onchange="handlePhotoAfter(event)">
 
 <!-- Modal Gains -->
 <div class="modal-overlay" id="modal-gain" onclick="handleOverlayClick(event,'modal-gain')">
@@ -1153,22 +1158,22 @@ function getPayMethods() {
 }
 
 const CAT_COLORS = {
-  logement:   {bg:'#ffd8e0', text:'#a03055', bar:'#f0a0b8'},
-  transport:  {bg:'#ffe4cc', text:'#a04820', bar:'#f0b080'},
-  achats:     {bg:'#fef5c0', text:'#806518', bar:'#e8cc70'},
-  transp_loc: {bg:'#ccf5de', text:'#2a7048', bar:'#78d4a0'},
-  alim:       {bg:'#d4ecff', text:'#1a5888', bar:'#84c0f0'},
-  sorties:    {bg:'#e8e0ff', text:'#5028a0', bar:'#b098f4'},
-  sante:      {bg:'#ffd8f0', text:'#902060', bar:'#f098c4'},
-  telecom:    {bg:'#c8f2fc', text:'#146470', bar:'#6cd0e8'},
-  shopping:   {bg:'#fff0b8', text:'#804810', bar:'#e8c040'},
-  voyages:    {bg:'#c8f5e0', text:'#1a6038', bar:'#68cca0'},
-  abo:        {bg:'#dce0ff', text:'#3030a8', bar:'#8e98f0'},
-  frais_banq: {bg:'#eaeff5', text:'#405878', bar:'#a8b8cc'},
-  admin:      {bg:'#ffe0d0', text:'#904020', bar:'#f0a888'},
-  cash:       {bg:'#d8faec', text:'#286840', bar:'#74d898'},
-  pourboires: {bg:'#ffe0f0', text:'#981060', bar:'#f098bc'},
-  divers:     {bg:'#eeeaff', text:'#5858a0', bar:'#c0b8e4'},
+  logement:   {bg:'#ffd8e0', text:'#a03055', bar:'#f0a0b8', bgd:'#3d1525', textd:'#f0a0b8'},
+  transport:  {bg:'#ffe4cc', text:'#a04820', bar:'#f0b080', bgd:'#3a1a06', textd:'#f0b080'},
+  achats:     {bg:'#fef5c0', text:'#806518', bar:'#e8cc70', bgd:'#2a2006', textd:'#e8cc70'},
+  transp_loc: {bg:'#ccf5de', text:'#2a7048', bar:'#78d4a0', bgd:'#08281a', textd:'#78d4a0'},
+  alim:       {bg:'#d4ecff', text:'#1a5888', bar:'#84c0f0', bgd:'#071c32', textd:'#84c0f0'},
+  sorties:    {bg:'#e8e0ff', text:'#5028a0', bar:'#b098f4', bgd:'#180c3c', textd:'#b098f4'},
+  sante:      {bg:'#ffd8f0', text:'#902060', bar:'#f098c4', bgd:'#2d0720', textd:'#f098c4'},
+  telecom:    {bg:'#c8f2fc', text:'#146470', bar:'#6cd0e8', bgd:'#04242c', textd:'#6cd0e8'},
+  shopping:   {bg:'#fff0b8', text:'#804810', bar:'#e8c040', bgd:'#281800', textd:'#e8c040'},
+  voyages:    {bg:'#c8f5e0', text:'#1a6038', bar:'#68cca0', bgd:'#062416', textd:'#68cca0'},
+  abo:        {bg:'#dce0ff', text:'#3030a8', bar:'#8e98f0', bgd:'#0c0c38', textd:'#8e98f0'},
+  frais_banq: {bg:'#eaeff5', text:'#405878', bar:'#a8b8cc', bgd:'#141c28', textd:'#a8b8cc'},
+  admin:      {bg:'#ffe0d0', text:'#904020', bar:'#f0a888', bgd:'#2c0e04', textd:'#f0a888'},
+  cash:       {bg:'#d8faec', text:'#286840', bar:'#74d898', bgd:'#042618', textd:'#74d898'},
+  pourboires: {bg:'#ffe0f0', text:'#981060', bar:'#f098bc', bgd:'#2a041e', textd:'#f098bc'},
+  divers:     {bg:'#eeeaff', text:'#5858a0', bar:'#c0b8e4', bgd:'#141238', textd:'#c0b8e4'},
 };
 
 // ══════════════════════════════════════════════
@@ -1696,7 +1701,13 @@ function getPlafond(catId) {
   return CAT_MAP[catId]?.plafond ?? null;
 }
 
-function catColor(catId) { return CAT_COLORS[catId] || CAT_COLORS.divers; }
+function catColor(catId) {
+  const c = CAT_COLORS[catId] || CAT_COLORS.divers;
+  if (document.documentElement.getAttribute('data-theme') === 'dark' && c.bgd) {
+    return {bg: c.bgd, text: c.textd, bar: c.bar};
+  }
+  return c;
+}
 
 function filteredExpenses() {
   return expenses.filter(e => {
@@ -2038,6 +2049,11 @@ function renderList() {
     CATS.map(c=>{const col=catColor(c.id);return `<button class="filter-chip ${catFilter===c.id?'active':''}" onclick="setCatFilter('${c.id}')" style="display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13)} ${c.lbl}</button>`;}).join('');
 
   const exps = filteredExpenses().sort((a,b)=>b.date.localeCompare(a.date));
+  const totalFiltered = exps.reduce((s,e)=>s+expenseEur(e),0);
+  const bar = document.getElementById('list-total-bar');
+  if (bar) bar.innerHTML = exps.length
+    ? `<span>${exps.length} dépense${exps.length>1?'s':''}</span><span style="font-family:var(--fm);color:var(--text)">${fmtEur(totalFiltered,2)}</span>`
+    : '';
   const body = document.getElementById('list-body');
 
   if(!exps.length) {
@@ -2132,9 +2148,14 @@ function renderRemb() {
   const pctRemb      = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
   const pctPlafond   = opcoEffectiveMax>0 ? totalRembCapped/opcoEffectiveMax*100 : 0;
   const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
-  const monthlyOpco   = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>{
-    const p=getPlafond(e.catId); return s+(p!==null?Math.min(expenseEur(e),p):expenseEur(e));
-  },0));
+  const monthlyOpco   = MONTH_DATES.map(ym=>{
+    const moRemb = allRemb.filter(e=>getMonth(e)===ym);
+    return CATS.reduce((s,c)=>{
+      const p = getPlafond(c.id);
+      const catTotal = moRemb.filter(e=>e.catId===c.id).reduce((t,e)=>t+expenseEur(e),0);
+      return s + (p !== null ? Math.min(catTotal, p) : catTotal);
+    }, 0);
+  });
   const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
     const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
     const plafond=getPlafond(c.id), quota=Math.min(total,plafond);
@@ -3286,9 +3307,13 @@ function updatePhotoPreview() {
   const prev = document.getElementById('photo-preview');
   if(!prev) return;
   if(photoData) {
+    prev.style.cursor = 'default';
+    prev.onclick = null;
     prev.innerHTML = `<img src="${photoData}" alt="Aperçu"><button class="photo-rm" onclick="event.stopPropagation();photoData=null;updatePhotoPreview()">✕</button>`;
   } else {
-    prev.innerHTML = `<span class="photo-icon">📷</span><span class="photo-hint">Appuyer pour ajouter</span>`;
+    prev.style.cursor = 'default';
+    prev.onclick = null;
+    prev.innerHTML = `<span class="photo-icon">📎</span><span class="photo-hint">Ajouter un justificatif</span><div style="display:flex;gap:8px;margin-top:8px"><button type="button" onclick="event.stopPropagation();document.getElementById('photo-input-cam').click()" style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">📷 Photo</button><button type="button" onclick="event.stopPropagation();document.getElementById('photo-input-file').click()" style="padding:5px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer">📁 Fichier</button></div>`;
   }
 }
 

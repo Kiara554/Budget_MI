@@ -81,7 +81,7 @@ Légende : [ ] à faire  [~] en cours  [x] fait
 
 ── UX MOBILE ──────────────────────────────────────────────────────────────────
 
-[ ] Badges catégories en mode sombre : les couleurs pastel claires sont
+[x] Badges catégories en mode sombre : les couleurs pastel claires sont
     illisibles sur fond sombre — adapter bg/text des badges au thème
 
 [ ] Swipe entre les mois (navigation par geste)
@@ -123,3 +123,15 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     pas de résolution → risque de perte de données
 
 [ ] index.html ~3600 lignes : envisager découpage en modules JS séparés
+
+--
+priorité
+- mai : dans le budget il y a que les dépenses d'avant stage et le vols a / r, le reste est réparti sur les 3 autres mois
+- [x] dans dépenses il faut mettre le tital à un endroit dans l'onglet
+- [x] dashboard : filtres doivent rester statique
+- [x] dépenses : filtre de mois et + total = statiques
+- cash : vérifier qu'on a le total en suivi à un endroit → totaux EUR/TND déjà affichés
+- [x] remboursmeent : mois statiques
+- [x] remboursement : bouton photo et téléchargement plus petit
+- [x] budget stage : recalculer Totaux (OPCO mensuel corrigé par catégorie)
+- [x] justif : pouvoir scanner le doc, ajouter un fichier ou une image
