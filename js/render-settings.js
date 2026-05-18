@@ -8,20 +8,37 @@ function renderSettings() {
   const hasPin = !!localStorage.getItem('mi_pin');
   const gistOk = !!settings.githubPAT;
 
-  // ── accordion helper ──────────────────────────────────────
-  function sec(key, emoji, title, summary, bodyHtml, defaultOpen) {
+  // ── helpers visuels ───────────────────────────────────────
+  // Ligne expandable dans un groupe
+  function row(key, iconBg, iconEm, title, valueTxt, bodyHtml, defaultOpen) {
     const open = settingsOpen[key] !== undefined ? settingsOpen[key] : defaultOpen;
-    return `<div style="border-bottom:1px solid var(--border)">
+    return `<div>
       <button type="button" onclick="settingsOpen['${key}']=!settingsOpen['${key}'];renderSettings()"
-        style="width:100%;display:flex;align-items:center;gap:10px;padding:13px 0;background:none;border:none;cursor:pointer;text-align:left">
-        <span style="font-size:17px;flex-shrink:0">${emoji}</span>
+        style="width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;background:none;border:none;cursor:pointer;text-align:left">
+        <div style="width:36px;height:36px;border-radius:10px;background:${iconBg};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">${iconEm}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:800;color:var(--text)">${title}</div>
-          ${summary&&!open?`<div style="font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${summary}</div>`:''}
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${title}</div>
+          ${valueTxt&&!open?`<div style="font-size:12px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${valueTxt}</div>`:''}
         </div>
-        <span style="font-size:11px;color:var(--text3);flex-shrink:0">${open?'▲':'▼'}</span>
+        <span style="font-size:18px;color:var(--text3);font-weight:300;flex-shrink:0;line-height:1">${open?'⌃':'›'}</span>
       </button>
-      ${open?`<div style="padding-bottom:14px">${bodyHtml}</div>`:''}
+      ${open?`<div style="padding:0 16px 16px;border-top:1px solid var(--border)">${bodyHtml}</div>`:''}
+    </div>`;
+  }
+  // Ligne directe (pas d'expand, action inline)
+  function rowDirect(iconBg, iconEm, title, rightHtml) {
+    return `<div style="display:flex;align-items:center;gap:12px;padding:13px 16px">
+      <div style="width:36px;height:36px;border-radius:10px;background:${iconBg};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">${iconEm}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--text)">${title}</div></div>
+      ${rightHtml}
+    </div>`;
+  }
+  // Groupe de lignes dans une carte arrondie
+  function group(label, rows) {
+    const sep = `<div style="height:1px;background:var(--border);margin-left:64px"></div>`;
+    return `<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;padding:20px 4px 8px">${label}</div>
+    <div style="background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)">
+      ${rows.join(sep)}
     </div>`;
   }
 
@@ -231,47 +248,63 @@ function renderSettings() {
     <div style="font-size:13px;color:var(--text3)">Calcul en cours…</div>
   </div>`;
 
-  const apparenceBody = `<div class="card" style="margin-bottom:0">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Mode sombre</div>
-        <div style="font-size:12px;color:var(--text3)">Thème adapté pour la nuit</div>
-      </div>
-      <button class="theme-toggle-btn ${isDark?'dark':''}" onclick="toggleTheme()">${isDark?'🌙 Activé':'☀️ Désactivé'}</button>
-    </div>
-  </div>`;
-
-  const resetBody = `<div class="card" style="margin-bottom:0">
-    <button class="btn btn-red" onclick="confirmReset()">🗑️ Effacer toutes les dépenses</button>
-  </div>`;
-
-  const aboutBody = `<div class="sync-box" style="margin-bottom:0">
-    <strong>Sauvegarde principale : GitHub Gist.</strong><br>
-    Données synchronisées automatiquement : dépenses, réglages, budgets, paiements, PIN.<br><br>
-    <strong>Secours :</strong> Exporter JSON (inclut photos) · Importer sur tout appareil · Partager via WhatsApp/mail.
-  </div>`;
 
   // ── assemblage ────────────────────────────────────────────
-  body.innerHTML = `<div style="margin-top:4px">
-    ${sec('gist',  '☁️', 'Sauvegarde Gist',       gistOk?(_syncState==='synced'?'✓ Synchronisé':'● Connecté'):'Non configuré', gistBody,       !gistOk)}
-    ${sec('pin',   '🔒', 'Code PIN',               hasPin?'Activé':'Non configuré',                pinBody,        false)}
-    ${sec('taux',  '💱', 'Taux de change',          `1 € = ${settings.rate} TND`,                   tauxBody,       false)}
-    ${sec('budgetGlobal','🎯','Budget global',      fmtEur(computeBudgetTotal(),0)+' total',         budgetGlobalBody,false)}
-    ${sec('cats',  '🏷️', 'Catégories',             getCats().length+' catégories',                  catsBody,       false)}
-    ${sec('budgets','💰','Budgets par catégorie',   fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0)+' total', budgetsCatBody, false)}
-    ${sec('pay',   '💳', 'Moyens de paiement',      getPayMethods().length+' configurés',            payBody,        false)}
-    ${sec('export','📦', 'Export / Import',         '',                                              exportBody,     false)}
-    ${sec('storage','💾','Stockage',                '',                                              storageBody,    false)}
-    ${sec('apparence','🎨','Apparence',             isDark?'Mode sombre':'Mode clair',               apparenceBody,  false)}
-    ${sec('reset', '🗑️', 'Données',                '',                                              resetBody,      false)}
-    ${sec('about', '💬', 'À propos',               '',                                              aboutBody,      false)}
-  </div>
-  <div style="height:12px"></div>
-  <div style="text-align:center;padding-bottom:4px">
-    <button class="btn btn-outline btn-sm" style="font-size:13px;padding:10px 20px" onclick="forceUpdate()">↻ Mettre à jour</button>
-  </div>
-  <div style="text-align:center;padding-bottom:8px;font-size:11px;color:var(--text3);font-family:var(--fm)">
-    MI Dépenses ${APP_VERSION}
+  const gistStatus = gistOk ? (_syncState==='synced' ? '✓ Synchronisé' : '● Connecté') : 'Non configuré';
+  const gistColor  = gistOk ? (_syncState==='synced' ? 'var(--green)' : 'var(--accent)') : 'var(--text3)';
+
+  body.innerHTML = `<div style="padding-top:8px">
+
+    <!-- Statut sync rapide -->
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:4px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="gist-status" class="gist-status-badge ${gistOk?(_syncState==='synced'?'synced':'idle'):'idle'}">${gistOk?(_syncState==='synced'?'✓ Sauvegardé':'● Connecté'):'○ Non configuré'}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${gistOk?`<button onclick="syncToGist()" style="padding:5px 12px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">↑ Sync</button>`:''}
+        <button onclick="settingsOpen['gist']=!settingsOpen['gist'];renderSettings()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer">⚙️</button>
+      </div>
+    </div>
+
+    <!-- SYNCHRO & SAUVEGARDE -->
+    ${group('Synchro & sauvegarde', [
+      row('gist',    'var(--blue-pale)',   '☁️', 'Sauvegarde Gist',    gistStatus,                                     gistBody,        !gistOk),
+      row('export',  'var(--green-pale)',  '📦', 'Export / Import',    '',                                             exportBody,      false),
+      row('storage', 'var(--surface2)',    '💾', 'Stockage',           '',                                             storageBody,     false),
+    ])}
+
+    <!-- BUDGET & CATÉGORIES -->
+    ${group('Budget & catégories', [
+      row('cats',         'var(--accent-pale)',  '🏷️', 'Catégories',          getCats().length+' catégories',                        catsBody,         false),
+      row('budgets',      'var(--green-pale)',   '💰', 'Budgets détaillés',   fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0), budgetsCatBody,   false),
+      row('budgetGlobal', 'var(--accent-pale)',  '🎯', 'Budget total stage',  fmtEur(computeBudgetTotal(),0),                        budgetGlobalBody, false),
+    ])}
+
+    <!-- PAIEMENTS & TAUX -->
+    ${group('Paiements & taux', [
+      row('pay',  'var(--blue-pale)',   '💳', 'Moyens de paiement', getPayMethods().length+' configurés',   payBody,  false),
+      row('taux', 'var(--orange-pale)', '💱', 'Taux de change',     `1 € = ${settings.rate} TND`,           tauxBody, false),
+    ])}
+
+    <!-- SÉCURITÉ & APPARENCE -->
+    ${group('Sécurité & apparence', [
+      row('pin', hasPin?'var(--green-pale)':'var(--red-pale)', '🔒',
+          'Code PIN', hasPin?'Activé ✓':'Non configuré', pinBody, false),
+      rowDirect('var(--surface2)', isDark?'🌙':'☀️', 'Mode sombre',
+        `<button class="theme-toggle-btn ${isDark?'dark':''}" onclick="toggleTheme();renderSettings()" style="flex-shrink:0">${isDark?'Activé':'Désactivé'}</button>`),
+    ])}
+
+    <!-- Danger + footer -->
+    <div style="margin-top:24px;padding:0 4px">
+      <button class="btn btn-red" onclick="confirmReset()" style="width:100%;min-height:44px">
+        🗑️ Effacer toutes les dépenses
+      </button>
+    </div>
+    <div style="margin-top:20px;display:flex;align-items:center;justify-content:space-between;padding:0 4px">
+      <span style="font-size:11px;color:var(--text3);font-family:var(--fm)">MI Dépenses ${APP_VERSION}</span>
+      <button class="btn btn-outline btn-sm" style="font-size:12px;padding:7px 14px" onclick="forceUpdate()">↻ Mettre à jour</button>
+    </div>
+    <div style="height:20px"></div>
   </div>`;
 
   if (settingsOpen['pay']) renderPayMethodsList();

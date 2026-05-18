@@ -1,4 +1,4 @@
-const CACHE = 'mi-depenses-v36';
+const CACHE = 'mi-depenses-v37';
 const CORE = [
   './', './index.html', './manifest.json', './icon.svg', './favicon.svg', './styles.css',
   './js/constants.js', './js/state.js', './js/storage.js', './js/helpers.js',
