@@ -135,3 +135,13 @@ priorité
 - [x] remboursement : bouton photo et téléchargement plus petit
 - [x] budget stage : recalculer Totaux (OPCO mensuel corrigé par catégorie)
 - [x] justif : pouvoir scanner le doc, ajouter un fichier ou une image
+- [] pouvoir ajouter plusieurs justificatifs
+- [] dépenses par catégories : enlever catégorie avion et achat avant stages dans les autres mois que mois de mai
+- [] progression mensuelle : ajouter un graph en mode courbe (soit sur le dashboard soit faire une page pour que plus visible avec tous les affichage à étudier le plus opti)
+- [] justificatif : prendre en charge les PDF
+- [] enregistrer tous les justificatif à un endroit dans les fichiers du tel (à config dans les paramètres) en plus de sur gist : peut etre que si on met dans le dossier on peut choisir dans l'app un justif de ce dossier dans le tel : à voir
+- [] ajouter un onglet todo : avec la liste des choses à faire pour mon stage, à acherter, à faire, ectt
+
+
+
+étudie l'architecture pour qu'elle soit optimale, et celle recommandée par les plus grands codeurs

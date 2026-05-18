@@ -1,5 +1,13 @@
-const CACHE = 'mi-depenses-v27';
-const CORE = ['./','./index.html','./manifest.json','./icon.svg','./favicon.svg'];
+const CACHE = 'mi-depenses-v29';
+const CORE = [
+  './', './index.html', './manifest.json', './icon.svg', './favicon.svg', './styles.css',
+  './js/constants.js', './js/state.js', './js/storage.js', './js/helpers.js',
+  './js/ui.js', './js/lock.js', './js/photo.js', './js/gist.js',
+  './js/modal-add.js', './js/modal-detail.js',
+  './js/render-dashboard.js', './js/render-list.js', './js/render-cash.js',
+  './js/render-remb.js', './js/render-settings.js', './js/render-settings-pay.js',
+  './js/gains.js', './js/app.js',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
