@@ -3,90 +3,20 @@ TODO — MI Dépenses
 Légende : [ ] à faire  [~] en cours  [x] fait
 
 
-── BUGS & FIXES RAPIDES ──────────────────────────────────────────────────────
-
-[x] Corriger mismatch version : SW v18 / APP_VERSION v17 (désync cache)
-[x] Fix CSS filtre dépenses : mauvaise indentation / affichage raté
-[x] Fix CSS suivi cash : titres moches
-
-
-── AMÉLIORATIONS UX / VISUEL ─────────────────────────────────────────────────
-
-[x] Progression mensuelle (tableau de bord) : rendre le graphique plus visible / plus grand
-[x] Dépenses par catégorie : afficher clairement la ligne plafond budget sur le graphique
-[x] Réglages – section Gist : rendre la section dépliable (accordéon)
-[x] Mode sombre
-[x] Retour visuel clair sur mobile après sync Gist (spinner, toast de confirmation…)
-
-
-── NOUVELLES FONCTIONNALITÉS ──────────────────────────────────────────────────
-
-[x] Catégorie "Gains" : nouvelle section pour saisir remboursements perso (pas OPCO),
-    salaire, aides — affiché séparément des dépenses, avec un bilan "solde net"
-    (dépenses - gains) accessible depuis la vue gains ou le tableau de bord
-
-[x] Vue "Remboursable OPCO" : afficher la proportion du budget dépensé qui est
-    remboursable OPCO (à intégrer dans un onglet existant ou nouvel onglet dédié)
-
-[x] Auto-coche "remboursable" à la saisie : si la catégorie a un plafond OPCO
-    défini dans les réglages, pré-cocher automatiquement "remboursable" (modifiable
-    manuellement en cas d'exception)
-
-[x] Totaux globaux dans vue Budget & Remboursements : afficher calcul par mois ET
-    total stage (mai–août), avec mini-résumé 1 mois visible en un coup d'œil
-
-[x] Graphiques : revoir ou ajouter des graphiques plus pertinents (mobile-first,
-    priorité aux barres/donuts lisibles sur petit écran)
-
-[x] Tri / filtre dans la vue Remboursements (par statut, par catégorie)
-
-[x] Export PDF ou CSV du dossier remboursement LEEM
-
-[x] Modifier un retrait sans devoir le supprimer et le recréer
-
-[x] Budgets configurables depuis l'app (BUDGET_MENSUEL, BUDGET_PREPA actuellement
-    en dur dans le code)
-
-
-── TECHNIQUE ──────────────────────────────────────────────────────────────────
-
-[x] Changer l'icône app : design plus pro + ajouter un favicon pour l'onglet PC
-
-[x] Photos base64 dans localStorage : risque saturation (~5-10 Mo max)
-    → photos migrées vers IndexedDB, indicateur de stockage dans Réglages
-
-[x] Sync avec Google Photos pour sauvegarde des justificatifs
-    → téléchargement groupé JPEG depuis vue Remboursements (bouton "Photos")
-    → alerte à la saisie si remboursable sans reçu
-    → filtre "⚠️ Sans justificatif" dans vue Remboursements
-
-
-── AMÉLIORATIONS POST-TODO ───────────────────────────────────────────────────
-
-[x] Dépenses récurrentes : modèles rapides (⚡) dans le formulaire de saisie
-    → sauvegarde / application / suppression d'un modèle
-
-[x] Page dédiée Suivi Cash : onglet nav "Cash", onglets mois, stats EUR/TND,
-    liste retraits + dépenses espèces ; bouton Retrait accessible (accent, 40px)
-
-[x] Vue Remboursements en deux sous-pages : "Synthèse" (graphs, OPCO, récap mois,
-    catégories) et "Dépenses" (liste filtrée par statut/mois, badge sans justif)
-
-[x] Badge "Sans reçu" rouge pill dans la liste des remboursements
-
-[x] Thème pastel cohérent (light + dark mode revu)
-
-
-── À FAIRE ───────────────────────────────────────────────────────────────────
-
 ── UX MOBILE ──────────────────────────────────────────────────────────────────
-
-[x] Badges catégories en mode sombre : les couleurs pastel claires sont
-    illisibles sur fond sombre — adapter bg/text des badges au thème
 
 [ ] Swipe entre les mois (navigation par geste)
 
 [ ] Retour haptique sur les actions importantes (ajout, suppression, sync)
+
+[ ] Badge compteur sur l'onglet nav Todo : point rouge ou chiffre si tâches
+    en retard ou haute priorité non cochées
+
+[ ] Widget "tâches urgentes" sur le dashboard : 2–3 items max (retard + haute
+    priorité), lien direct vers la vue Todo
+
+[ ] Compte à rebours fin de stage affiché sur le dashboard
+    (ex. "il reste 47 jours — fin le 31 août")
 
 
 ── DONNÉES & CALCULS ──────────────────────────────────────────────────────────
@@ -102,6 +32,20 @@ Légende : [ ] à faire  [~] en cours  [x] fait
 
 
 ── FONCTIONNALITÉS ────────────────────────────────────────────────────────────
+
+[ ] Recherche dans la liste des dépenses (par description, montant, catégorie)
+    → barre de recherche en haut de la vue Dépenses
+
+[ ] Comparaison mois : sur le dashboard, afficher mois précédent vs mois actuel
+    (delta dépenses, delta remboursable)
+
+[ ] Statistiques dépenses : jour de la semaine le plus dépensier, catégorie
+    la plus fréquente — accessible depuis le dashboard ou vue Dépenses
+
+[ ] Champ notes sur une tâche Todo (contexte court sous le titre, optionnel)
+
+[ ] Lier une tâche Todo à une dépense existante
+    (ex. "vérifier ce reçu" → pointe vers la dépense)
 
 [ ] Alertes budget : notification / indicateur visuel quand on approche
     du plafond d'une catégorie (ex. : 80% atteint)
@@ -122,26 +66,6 @@ Légende : [ ] à faire  [~] en cours  [x] fait
 [ ] Gestion de conflit Gist : si modif sur deux appareils simultanément,
     pas de résolution → risque de perte de données
 
+[ ] Cash : vérifier qu'on a le total en suivi à un endroit
+
 [ ] index.html ~3600 lignes : envisager découpage en modules JS séparés
-
---
-priorité
-- mai : dans le budget il y a que les dépenses d'avant stage et le vols a / r, le reste est réparti sur les 3 autres mois
-- [x] dans dépenses il faut mettre le tital à un endroit dans l'onglet
-- [x] dashboard : filtres doivent rester statique
-- [x] dépenses : filtre de mois et + total = statiques
-- cash : vérifier qu'on a le total en suivi à un endroit → totaux EUR/TND déjà affichés
-- [x] remboursmeent : mois statiques
-- [x] remboursement : bouton photo et téléchargement plus petit
-- [x] budget stage : recalculer Totaux (OPCO mensuel corrigé par catégorie)
-- [x] justif : pouvoir scanner le doc, ajouter un fichier ou une image
-- [x] pouvoir ajouter plusieurs justificatifs
-- [x] dépenses par catégories : enlever catégorie avion et achat avant stages dans les autres mois que mois de mai
-- [x] progression mensuelle : ajouter un graph en mode courbe (toggle ▬/∿ sur le dashboard)
-- [x] justificatif : prendre en charge les PDF (aperçu + ouvrir dans le navigateur)
-- [x] enregistrer tous les justificatifs → ZIP téléchargeable (images + PDFs) depuis Remboursements
-- [x] ajouter un onglet todo : liste libre avec catégories utilisateur, cochage, changement de catégorie
-
-
-
-étudie l'architecture pour qu'elle soit optimale, et celle recommandée par les plus grands codeurs
