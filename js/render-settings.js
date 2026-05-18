@@ -4,281 +4,278 @@
 // ══════════════════════════════════════════════
 function renderSettings() {
   const body = document.getElementById('settings-body');
-  body.innerHTML = `
-  <div style="margin-top:12px"></div>
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  const hasPin = !!localStorage.getItem('mi_pin');
+  const gistOk = !!settings.githubPAT;
 
-  <!-- Sauvegarde cloud GitHub Gist -->
-  <div class="settings-section">
-    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      Sauvegarde cloud (GitHub Gist)
-    </div>
-    <div class="card">
-      <div id="gist-status" class="gist-status-badge ${settings.githubPAT ? (_syncState==='synced'?'synced':'idle') : 'idle'}">
-        ${settings.githubPAT ? (_syncState==='synced' ? '✓ Sauvegardé sur Gist' : '● Connecté') : '○ Non configuré'}
-      </div>
-
-      <button onclick="_gistInfoOpen=!_gistInfoOpen;renderSettings()" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:10px;cursor:pointer">
-        <span>${_gistInfoOpen ? '▲' : '▼'}</span> Instructions de configuration
+  // ── accordion helper ──────────────────────────────────────
+  function sec(key, emoji, title, summary, bodyHtml, defaultOpen) {
+    const open = settingsOpen[key] !== undefined ? settingsOpen[key] : defaultOpen;
+    return `<div style="border-bottom:1px solid var(--border)">
+      <button type="button" onclick="settingsOpen['${key}']=!settingsOpen['${key}'];renderSettings()"
+        style="width:100%;display:flex;align-items:center;gap:10px;padding:13px 0;background:none;border:none;cursor:pointer;text-align:left">
+        <span style="font-size:17px;flex-shrink:0">${emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800;color:var(--text)">${title}</div>
+          ${summary&&!open?`<div style="font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${summary}</div>`:''}
+        </div>
+        <span style="font-size:11px;color:var(--text3);flex-shrink:0">${open?'▲':'▼'}</span>
       </button>
-      ${_gistInfoOpen ? `<div class="gist-info-box">
-        Sauvegarde <strong>automatique</strong> 4 s après chaque modification (dépenses, réglages, budgets, moyens de paiement, PIN).<br><br>
-        <strong>Nouvel appareil</strong> : colle ton token → <em>Connecter</em> → l'app retrouve ton Gist automatiquement et charge tes données.<br><br>
-        <strong>Créer un token :</strong><br>
-        <strong>1.</strong> github.com → ton avatar → <strong>Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
-        <strong>2.</strong> <em>Generate new token (classic)</em> · coche uniquement <strong><code>gist</code></strong><br>
-        <strong>3.</strong> Copie le token (<code>ghp_…</code>) et colle-le ci-dessous
-      </div>` : ''}
+      ${open?`<div style="padding-bottom:14px">${bodyHtml}</div>`:''}
+    </div>`;
+  }
 
+  // ── palette partagée catégories ───────────────────────────
+  const CAT_PALETTE = [
+    '#f0a0b8','#ff6b6b','#ee5a24','#fd79a8',
+    '#f0b080','#feca57','#e17055','#fdcb6e',
+    '#78d4a0','#55efc4','#00b894','#a8d870',
+    '#84c0f0','#0984e3','#74b9ff','#6cd0e8',
+    '#b098f4','#a29bfe','#6c5ce7','#e84393',
+    '#f4a060','#c0b8e4','#a8b8cc','#74d898',
+    '#e8c040','#68cca0','#f098bc','#8e98f0',
+    '#ff9f43','#48dbfb','#ff9ff3','#54a0ff',
+  ];
+  const customIds = new Set((settings.customCats||[]).map(c=>c.id));
+
+  function catEditForm(c, isNew) {
+    const cc = c.color||'';
+    return `<div style="background:var(--surface2);border-radius:14px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input class="form-input" id="ce-em-${c.id}" value="${c.em||''}" maxlength="3" placeholder="🏠" style="width:52px;text-align:center;font-size:20px;flex-shrink:0;padding:6px 4px">
+        <input class="form-input" id="ce-lbl-${c.id}" value="${escHtml(c.lbl||'')}" placeholder="Nom…" style="flex:1">
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;align-items:center" id="ce-sw-${c.id}">
+        ${CAT_PALETTE.map(col=>`<button type="button" onclick="(function(b,v){document.querySelectorAll('#ce-sw-${c.id} .cs').forEach(x=>x.style.outline='none');b.style.outline='3px solid var(--accent)';document.getElementById('ce-color-${c.id}').value=v;var hi=document.getElementById('ce-hex-${c.id}');if(hi)hi.value=v;var pr=document.getElementById('ce-prev-${c.id}');if(pr)pr.style.background=v;})(this,'${col}')" class="cs" style="width:24px;height:24px;border-radius:50%;border:none;background:${col};cursor:pointer;outline:${cc===col?'3px solid var(--accent)':'none'};flex-shrink:0"></button>`).join('')}
+        <input type="color" id="ce-picker-${c.id}" value="${cc||'#84c0f0'}" onchange="(function(v){document.getElementById('ce-color-${c.id}').value=v;document.querySelectorAll('#ce-sw-${c.id} .cs').forEach(x=>x.style.outline='none');var hi=document.getElementById('ce-hex-${c.id}');if(hi)hi.value=v;var pr=document.getElementById('ce-prev-${c.id}');if(pr)pr.style.background=v;})(this.value)" style="width:24px;height:24px;border-radius:50%;border:2px solid var(--border);padding:0;cursor:pointer;flex-shrink:0;overflow:hidden" title="Sélecteur visuel">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div id="ce-prev-${c.id}" style="width:28px;height:28px;border-radius:50%;background:${cc||'var(--border)'};border:2px solid var(--border);flex-shrink:0"></div>
+        <input type="text" id="ce-hex-${c.id}" value="${cc}" placeholder="#84c0f0" maxlength="7"
+          style="flex:1;font-family:var(--fm);font-size:13px;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);outline:none"
+          oninput="applyCatHex('${c.id}',this.value)"
+          onblur="applyCatHex('${c.id}',this.value,true)">
+      </div>
+      <input type="hidden" id="ce-color-${c.id}" value="${cc}">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" onclick="${isNew?'saveNewCat()':'saveCatSettings(\''+c.id+'\')'}" style="flex:1;min-width:80px;padding:8px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Enregistrer</button>
+        <button type="button" onclick="catSettingsEditId=null;renderSettings()" style="padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--text2);font-size:13px;cursor:pointer">Annuler</button>
+        ${isNew?'':customIds.has(c.id)
+          ?`<button type="button" onclick="deleteCustomCat('${c.id}')" style="padding:8px 10px;border-radius:10px;border:none;background:none;color:var(--red);font-size:13px;font-weight:700;cursor:pointer">✕ Suppr.</button>`
+          :`<button type="button" onclick="resetCatOverride('${c.id}')" style="padding:8px 10px;border-radius:10px;border:none;background:none;color:var(--text3);font-size:12px;cursor:pointer">↩ Défaut</button>`}
+      </div>
+    </div>`;
+  }
+
+  // ── contenus des sections ─────────────────────────────────
+  const gistBody = `
+    <div class="card" style="margin-bottom:0">
+      <div id="gist-status" class="gist-status-badge ${gistOk?(_syncState==='synced'?'synced':'idle'):'idle'}" style="margin-bottom:10px">
+        ${gistOk?(_syncState==='synced'?'✓ Sauvegardé sur Gist':'● Connecté'):'○ Non configuré'}
+      </div>
+      <button onclick="_gistInfoOpen=!_gistInfoOpen;renderSettings()" style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:10px;cursor:pointer">
+        <span>${_gistInfoOpen?'▲':'▼'}</span> Instructions
+      </button>
+      ${_gistInfoOpen?`<div class="gist-info-box" style="margin-bottom:10px">
+        Sauvegarde <strong>auto</strong> 4 s après chaque modif.<br>
+        <strong>Nouvel appareil</strong> : colle ton token → <em>Connecter</em>.<br><br>
+        <strong>1.</strong> github.com → avatar → <strong>Settings → Developer settings → Personal access tokens → Tokens (classic)</strong><br>
+        <strong>2.</strong> <em>Generate new token (classic)</em> · coche <strong><code>gist</code></strong><br>
+        <strong>3.</strong> Copie le token (<code>ghp_…</code>)
+      </div>`:''}
       <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Token GitHub (scope gist)</label>
+        <label class="form-label">Token GitHub</label>
         <div class="pat-input-wrap">
-          <input class="form-input" type="password" id="s-pat"
-            value="${settings.githubPAT||''}"
-            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-            autocomplete="off" autocorrect="off" spellcheck="false">
-          <button class="pat-toggle" type="button" onclick="
-            const i=document.getElementById('s-pat');
-            i.type=i.type==='password'?'text':'password';
-            this.textContent=i.type==='password'?'👁':'🙈';
-          ">👁</button>
+          <input class="form-input" type="password" id="s-pat" value="${settings.githubPAT||''}" placeholder="ghp_…" autocomplete="off" autocorrect="off" spellcheck="false">
+          <button class="pat-toggle" type="button" onclick="const i=document.getElementById('s-pat');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'">👁</button>
         </div>
       </div>
-
       <div class="btn-row" style="margin-bottom:8px">
         <button class="btn btn-accent" onclick="savePAT()" style="min-height:44px">Connecter</button>
-        <button class="btn btn-outline" onclick="syncToGist()" style="min-height:44px" ${settings.githubPAT?'':'disabled'}>
-          Sauvegarder maintenant
-        </button>
+        <button class="btn btn-outline" onclick="syncToGist()" style="min-height:44px" ${gistOk?'':'disabled'}>Sauvegarder</button>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-outline" onclick="loadFromGist()" style="min-height:44px" ${settings.githubGistId?'':'disabled'}>Charger depuis Gist</button>
+        ${gistOk?`<button class="btn" style="min-height:44px;color:var(--text3);border:1px solid var(--border)" onclick="disconnectGist()">Déconnecter</button>`:''}
+      </div>
+      <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span>Gist ID</span>
+        ${settings.githubGistId?`<a href="https://gist.github.com/${settings.githubGistId}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none">Voir ↗</a>`:''}
+      </label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="s-gist-id" value="${settings.githubGistId||''}" placeholder="ex: 4a3b2c1d…" autocomplete="off" spellcheck="false" style="flex:1;font-family:var(--fm);font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);outline:none;min-width:0">
+        <button onclick="saveGistId()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer">OK</button>
+      </div>
+    </div>`;
+
+  const pinBody = `<div class="card" style="margin-bottom:0">
+    ${hasPin?`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+        <span style="font-size:13px;font-weight:700;color:var(--green)">Code PIN activé</span>
       </div>
       <div class="btn-row">
-        <button class="btn btn-outline" onclick="loadFromGist()" style="min-height:44px" ${settings.githubGistId?'':'disabled'}>
-          Charger depuis Gist
-        </button>
-        ${settings.githubPAT ? `<button class="btn" style="min-height:44px;color:var(--text3);border:1px solid var(--border)" onclick="disconnectGist()">Déconnecter</button>` : ''}
+        <button class="btn btn-outline" style="flex:1;min-height:44px" onclick="changePin()">Changer</button>
+        <button class="btn" style="flex:1;min-height:44px;color:var(--red);border:1px solid var(--border)" onclick="disablePin()">Désactiver</button>
+      </div>`:`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--border)"></div>
+        <span style="font-size:13px;font-weight:700;color:var(--text3)">Aucun code configuré</span>
       </div>
+      <button class="btn btn-accent" style="min-height:44px;width:100%" onclick="setupPin()">Activer un code PIN</button>`}
+  </div>`;
 
-      <div class="form-group" style="margin-top:12px;margin-bottom:6px">
-        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
-          <span>Gist ID</span>
-          ${settings.githubGistId ? `<a href="https://gist.github.com/${settings.githubGistId}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none">Voir ↗</a>` : ''}
-        </label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="s-gist-id"
-            value="${settings.githubGistId||''}"
-            placeholder="ex: 4a3b2c1d…"
-            autocomplete="off" spellcheck="false"
-            style="flex:1;font-family:var(--fm);font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);outline:none;min-width:0">
-          <button onclick="saveGistId()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">OK</button>
-        </div>
+  const tauxBody = `<div class="card" style="margin-bottom:0">
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">1 EUR = ? TND</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" type="number" id="s-rate" value="${settings.rate}" step="0.01" min="1" style="flex:1">
+        <button onclick="fetchRate()" id="btn-fetch-rate" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">↻ Actuel</button>
+      </div>
+      <div id="rate-info" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+    </div>
+    <button class="btn btn-accent" onclick="saveRate()" style="min-height:44px">Sauvegarder</button>
+  </div>`;
+
+  const budgetGlobalBody = `<div class="card" style="margin-bottom:0">
+    <div class="stat-grid" style="margin-bottom:10px">
+      <div class="stat-card accent-bg">
+        <div class="stat-label">Budget Mai</div>
+        <div class="stat-value mono">${fmtEur(computeBudgetPrepa(),0)}</div>
+        <div class="stat-small">Transport + Achats prépa</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mensuel (×3)</div>
+        <div class="stat-value mono">${fmtEur(computeBudgetMensuel(),0)}</div>
+        <div class="stat-small">Juin · Juillet · Août</div>
       </div>
     </div>
-  </div>
-
-  <!-- Code PIN -->
-  <div class="settings-section">
-    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Sécurité — Code PIN
+    <div class="stat-card green-bg" style="margin-bottom:0">
+      <div class="stat-label">Budget total stage</div>
+      <div class="stat-value mono" style="font-size:24px">${fmtEur(computeBudgetTotal(),0)}</div>
     </div>
-    <div class="card">
-      ${localStorage.getItem('mi_pin') ? `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
-          <span style="font-size:13px;font-weight:700;color:var(--green)">Code PIN activé</span>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-outline" style="flex:1;min-height:44px" onclick="changePin()">Changer le code</button>
-          <button class="btn" style="flex:1;min-height:44px;color:var(--red);border:1px solid var(--border)" onclick="disablePin()">Désactiver</button>
-        </div>
-      ` : `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
-          <span style="font-size:13px;font-weight:700;color:var(--text3)">Aucun code configuré</span>
-        </div>
-        <button class="btn btn-accent" style="min-height:44px;width:100%" onclick="setupPin()">Activer un code PIN</button>
-      `}
-    </div>
-  </div>
+  </div>`;
 
-  <!-- Taux de change -->
-  <div class="settings-section">
-    <div class="settings-section-title">💱 Taux de change</div>
-    <div class="card">
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">1 EUR = ? TND</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input class="form-input" type="number" id="s-rate" value="${settings.rate}" step="0.01" min="1" style="flex:1">
-          <button onclick="fetchRate()" id="btn-fetch-rate" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">↻ Actuel</button>
-        </div>
-        <div id="rate-info" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+  const catsBody = (()=>{
+    const rows = getCats().map(c => {
+      if (catSettingsEditId === c.id) return catEditForm(c, false);
+      const col = catColor(c.id);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="flex:1;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;background:${col.bg};color:${col.text};overflow:hidden">
+          ${c.em||icon(c.ic||'divers',13,col.text)} <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.lbl)}</span>
+          ${customIds.has(c.id)?'<span style="font-size:9px;opacity:.6">perso</span>':''}
+        </span>
+        <button type="button" onclick="catSettingsEditId='${c.id}';renderSettings()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text2);font-size:13px;cursor:pointer;flex-shrink:0">✎</button>
+      </div>`;
+    }).join('');
+    const newForm = catSettingsEditId==='__new__' ? catEditForm({id:'__new__',lbl:'',em:'',color:''}, true) : '';
+    return `<div class="card" style="margin-bottom:0;padding-bottom:8px">${rows}${newForm}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button type="button" onclick="catSettingsEditId='__new__';renderSettings()" style="flex:1;padding:10px;border-radius:12px;border:2px dashed var(--border);background:none;color:var(--text3);font-size:13px;font-weight:700;cursor:pointer">+ Ajouter</button>
+        <button type="button" onclick="resetAllCats()" style="padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:none;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer" title="Remettre toutes les catégories par défaut">↩ Tout défaut</button>
       </div>
-      <button class="btn btn-accent" onclick="saveRate()" style="min-height:44px">Sauvegarder le taux</button>
-    </div>
-  </div>
+    </div>`;
+  })();
 
-  <!-- Budget global -->
-  <div class="settings-section">
-    <div class="settings-section-title">🎯 Budget global du stage</div>
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:14px">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Calculé automatiquement depuis les budgets par catégorie
-      </div>
-      <div class="stat-grid" style="margin-bottom:10px">
-        <div class="stat-card accent-bg">
-          <div class="stat-label">Budget Mai</div>
-          <div class="stat-value mono">${fmtEur(computeBudgetPrepa(),0)}</div>
-          <div class="stat-small">Transport A/R + Achats prépa</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Budget mensuel</div>
-          <div class="stat-value mono">${fmtEur(computeBudgetMensuel(),0)}</div>
-          <div class="stat-small">Juin · Juillet · Août (×3)</div>
-        </div>
-      </div>
-      <div class="stat-card green-bg" style="margin-bottom:0">
-        <div class="stat-label">Budget total stage</div>
-        <div class="stat-value mono" style="font-size:26px">${fmtEur(computeBudgetTotal(),0)}</div>
-        <div class="stat-small">Mai + mensuel × 3</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Budget par catégorie -->
-  <div class="settings-section">
-    <div class="settings-section-title">💰 Budgets par catégorie</div>
-    <div class="card" style="padding:0 0 8px;overflow:hidden">
-      <div style="overflow-x:auto">
-        <table class="budget-table" style="padding:0 12px">
-          <thead>
-            <tr>
-              <th style="padding:12px 12px 6px">Catégorie</th>
-              <th>Budget (€)</th>
-              <th>Plafond remb. (€)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${CATS.map(c=>{
-              const b = getBudget(c.id);
-              const p = getPlafond(c.id);
-              return `<tr>
-                <td style="padding:8px 12px 8px;border:none;background:none;display:flex;align-items:center;gap:6px">
-                  <span style="background:${catColor(c.id).bg};color:${catColor(c.id).text};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13,catColor(c.id).text)} ${c.lbl}</span>
-                </td>
-                <td style="border:none;background:none;text-align:right">
-                  <input class="budget-input" type="number" min="0" id="b-budget-${c.id}" value="${b}" placeholder="—">
-                </td>
-                <td style="border:none;background:none;text-align:right">
-                  <input class="budget-input" type="number" min="0" id="b-plafond-${c.id}" value="${p!==null?p:''}" placeholder="—">
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td style="padding:8px 12px;font-size:12px;font-weight:900;color:var(--text);border-top:2px solid var(--border);border:none;background:none">Total</td>
-              <td style="border-top:2px solid var(--border);border:none;background:none;text-align:right;font-size:13px;font-weight:900;font-family:var(--fm);color:var(--accent)">
-                ${fmtEur(CATS.reduce((s,c)=>s+getBudget(c.id),0),0)}
+  const budgetsCatBody = `<div class="card" style="margin-bottom:0;padding:0 0 8px;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="budget-table">
+        <thead><tr>
+          <th style="padding:10px 10px 6px">Catégorie</th>
+          <th>Budget €</th><th>Plafond OPCO €</th>
+        </tr></thead>
+        <tbody>
+          ${getCats().map(c=>{
+            const b=getBudget(c.id), p=getPlafond(c.id), col=catColor(c.id);
+            return `<tr>
+              <td style="padding:6px 10px;border:none;background:none">
+                <span style="background:${col.bg};color:${col.text};padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px">${icon(c.ic||'divers',11,col.text)} ${c.lbl}</span>
               </td>
-              <td style="border-top:2px solid var(--border);border:none;background:none;text-align:right;font-size:13px;font-weight:900;font-family:var(--fm);color:var(--green)">
-                ${fmtEur(CATS.reduce((s,c)=>{ const p=getPlafond(c.id); return s+(p||0); },0),0)} <span style="font-size:10px;font-weight:700;color:var(--text3)">/ ${fmtEur(OPCO_GLOBAL_MAX,0)} max</span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+              <td style="border:none;background:none;text-align:right"><input class="budget-input" type="number" min="0" id="b-budget-${c.id}" value="${b}" placeholder="—"></td>
+              <td style="border:none;background:none;text-align:right"><input class="budget-input" type="number" min="0" id="b-plafond-${c.id}" value="${p!==null?p:''}" placeholder="—"></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot><tr>
+          <td style="padding:6px 10px;font-size:12px;font-weight:900;border:none;background:none">Total</td>
+          <td style="border:none;background:none;text-align:right;font-size:12px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0)}</td>
+          <td style="border:none;background:none;text-align:right;font-size:12px;font-weight:900;font-family:var(--fm);color:var(--green)">${fmtEur(getCats().reduce((s,c)=>{const p=getPlafond(c.id);return s+(p||0);},0),0)} <span style="font-size:10px;color:var(--text3)">/ ${fmtEur(OPCO_GLOBAL_MAX,0)}</span></td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <div style="padding:8px 10px 2px;display:flex;gap:8px">
+      <button class="btn btn-accent" onclick="saveBudgets()" style="min-height:40px">💾 Sauvegarder</button>
+      <button class="btn btn-outline" onclick="resetBudgets()" style="min-height:40px">↩ Défaut</button>
+    </div>
+  </div>`;
+
+  const payBody = `<div class="card" style="margin-bottom:0;padding-bottom:8px">
+    <div id="pay-methods-list"></div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-outline" onclick="addPayMethod()" style="min-height:40px">+ Ajouter</button>
+      <button class="btn btn-accent" onclick="savePayMethods()" style="min-height:40px">💾 Sauvegarder</button>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:6px">💳 Carte · 💵 Espèces · 🔄 Virement · 📱 Mobile</p>
+  </div>`;
+
+  const exportBody = `<div class="card" style="margin-bottom:0">
+    <div class="btn-row" style="margin-bottom:8px">
+      <button class="btn btn-accent" onclick="exportData()">Exporter JSON</button>
+      <button class="btn btn-outline" onclick="shareData()">Partager</button>
+    </div>
+    <button class="btn btn-outline" onclick="document.getElementById('import-input').click()">Importer JSON</button>
+    <input type="file" id="import-input" accept="application/json,.json" style="display:none" onchange="importData(event)">
+  </div>`;
+
+  const storageBody = `<div class="card" id="storage-info-card" style="margin-bottom:0">
+    <div style="font-size:13px;color:var(--text3)">Calcul en cours…</div>
+  </div>`;
+
+  const apparenceBody = `<div class="card" style="margin-bottom:0">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Mode sombre</div>
+        <div style="font-size:12px;color:var(--text3)">Thème adapté pour la nuit</div>
       </div>
-      <div style="padding:10px 12px 4px;display:flex;gap:10px">
-        <button class="btn btn-accent" onclick="saveBudgets()" style="min-height:44px">💾 Sauvegarder budgets</button>
-        <button class="btn btn-outline" onclick="resetBudgets()" style="min-height:44px">↩ Réinitialiser</button>
-      </div>
+      <button class="theme-toggle-btn ${isDark?'dark':''}" onclick="toggleTheme()">${isDark?'🌙 Activé':'☀️ Désactivé'}</button>
     </div>
-  </div>
+  </div>`;
 
-  <!-- Moyens de paiement -->
-  <div class="settings-section">
-    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Moyens de paiement</div>
-    <div class="card" style="padding-bottom:8px">
-      <div id="pay-methods-list"></div>
-      <div class="btn-row" style="margin-top:10px">
-        <button class="btn btn-outline" onclick="addPayMethod()" style="display:flex;align-items:center;gap:5px;min-height:40px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Ajouter</button>
-        <button class="btn btn-accent" onclick="savePayMethods()" style="display:flex;align-items:center;gap:5px;min-height:40px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Sauvegarder</button>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin-top:8px">Choisir le type : 💳 Carte · 💵 Espèces · 🔄 Virement · 📱 Mobile</p>
-    </div>
-  </div>
+  const resetBody = `<div class="card" style="margin-bottom:0">
+    <button class="btn btn-red" onclick="confirmReset()">🗑️ Effacer toutes les dépenses</button>
+  </div>`;
 
-  <!-- Import / Export -->
-  <div class="settings-section">
-    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export / Import</div>
-    <div class="card">
-      <div class="btn-row" style="margin-bottom:10px">
-        <button class="btn btn-accent" onclick="exportData()" style="display:flex;align-items:center;gap:5px">Exporter JSON</button>
-        <button class="btn btn-outline" onclick="shareData()" style="display:flex;align-items:center;gap:5px">Partager</button>
-      </div>
-      <button class="btn btn-outline" onclick="document.getElementById('import-input').click()" style="display:flex;align-items:center;gap:5px">Importer JSON</button>
-      <input type="file" id="import-input" accept="application/json,.json" style="display:none" onchange="importData(event)">
-    </div>
-  </div>
+  const aboutBody = `<div class="sync-box" style="margin-bottom:0">
+    <strong>Sauvegarde principale : GitHub Gist.</strong><br>
+    Données synchronisées automatiquement : dépenses, réglages, budgets, paiements, PIN.<br><br>
+    <strong>Secours :</strong> Exporter JSON (inclut photos) · Importer sur tout appareil · Partager via WhatsApp/mail.
+  </div>`;
 
-  <!-- Stockage -->
-  <div class="settings-section">
-    <div class="settings-section-title" style="display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3S3 13.66 3 12"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg> Stockage</div>
-    <div class="card" id="storage-info-card">
-      <div style="font-size:13px;color:var(--text3)">Calcul en cours…</div>
-    </div>
+  // ── assemblage ────────────────────────────────────────────
+  body.innerHTML = `<div style="margin-top:4px">
+    ${sec('gist',  '☁️', 'Sauvegarde Gist',       gistOk?(_syncState==='synced'?'✓ Synchronisé':'● Connecté'):'Non configuré', gistBody,       !gistOk)}
+    ${sec('pin',   '🔒', 'Code PIN',               hasPin?'Activé':'Non configuré',                pinBody,        false)}
+    ${sec('taux',  '💱', 'Taux de change',          `1 € = ${settings.rate} TND`,                   tauxBody,       false)}
+    ${sec('budgetGlobal','🎯','Budget global',      fmtEur(computeBudgetTotal(),0)+' total',         budgetGlobalBody,false)}
+    ${sec('cats',  '🏷️', 'Catégories',             getCats().length+' catégories',                  catsBody,       false)}
+    ${sec('budgets','💰','Budgets par catégorie',   fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0)+' total', budgetsCatBody, false)}
+    ${sec('pay',   '💳', 'Moyens de paiement',      getPayMethods().length+' configurés',            payBody,        false)}
+    ${sec('export','📦', 'Export / Import',         '',                                              exportBody,     false)}
+    ${sec('storage','💾','Stockage',                '',                                              storageBody,    false)}
+    ${sec('apparence','🎨','Apparence',             isDark?'Mode sombre':'Mode clair',               apparenceBody,  false)}
+    ${sec('reset', '🗑️', 'Données',                '',                                              resetBody,      false)}
+    ${sec('about', '💬', 'À propos',               '',                                              aboutBody,      false)}
   </div>
-
-  <!-- Reset data -->
-  <div class="settings-section">
-    <div class="settings-section-title">🗑️ Données</div>
-    <div class="card">
-      <button class="btn btn-red" onclick="confirmReset()">🗑️ Effacer toutes les dépenses</button>
-    </div>
-  </div>
-
-  <!-- Apparence -->
-  <div class="settings-section">
-    <div class="settings-section-title">🎨 Apparence</div>
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Mode sombre</div>
-          <div style="font-size:12px;color:var(--text3)">Thème adapté pour la nuit</div>
-        </div>
-        <button class="theme-toggle-btn ${document.documentElement.getAttribute('data-theme')==='dark'?'dark':''}" onclick="toggleTheme()">
-          ${document.documentElement.getAttribute('data-theme')==='dark' ? '🌙 Activé' : '☀️ Désactivé'}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- About sync -->
-  <div class="settings-section">
-    <div class="settings-section-title">💬 À propos de la synchro</div>
-    <div class="sync-box">
-      <strong>Sauvegarde principale : GitHub Gist</strong> (section ci-dessus).<br>
-      Toutes les données sont synchronisées automatiquement — dépenses, réglages, budgets, moyens de paiement et code PIN.<br><br>
-      <strong>Sauvegarde manuelle (secours) :</strong><br>
-      • <strong>Exporter JSON</strong> → fichier complet avec photos des reçus<br>
-      • <strong>Importer JSON</strong> sur n'importe quel appareil<br>
-      • <strong>Partager</strong> → envoyer via WhatsApp, mail, etc.<br><br>
-      ℹ️ Les photos des reçus sont incluses dans le JSON exporté et dans le Gist (en base64).
-    </div>
-  </div>
-
-  <div style="height:20px"></div>
+  <div style="height:12px"></div>
   <div style="text-align:center;padding-bottom:4px">
-    <button class="btn btn-outline btn-sm" style="font-size:13px;padding:10px 20px" onclick="forceUpdate()">
-      ↻ Mettre à jour l'application
-    </button>
+    <button class="btn btn-outline btn-sm" style="font-size:13px;padding:10px 20px" onclick="forceUpdate()">↻ Mettre à jour</button>
   </div>
   <div style="text-align:center;padding-bottom:8px;font-size:11px;color:var(--text3);font-family:var(--fm)">
-    MI Dépenses ${APP_VERSION} — Cache sw-${APP_VERSION}
-  </div>
-  `;
-  renderPayMethodsList();
-  updateStorageInfo();
+    MI Dépenses ${APP_VERSION}
+  </div>`;
+
+  if (settingsOpen['pay']) renderPayMethodsList();
+  if (settingsOpen['storage']) updateStorageInfo();
 }
 
 async function updateStorageInfo() {
@@ -421,7 +418,7 @@ function saveBudgetGlobal() {
 }
 
 function saveBudgets() {
-  CATS.forEach(c=>{
+  getCats().forEach(c=>{
     const bEl = document.getElementById('b-budget-'+c.id);
     const pEl = document.getElementById('b-plafond-'+c.id);
     if(!settings.budgets[c.id]) settings.budgets[c.id] = {};
@@ -488,4 +485,82 @@ function confirmReset() {
   expenses = [];
   save(); render();
   toast('Toutes les dépenses supprimées');
+}
+
+// ── Champ hex couleur catégorie ─────────────────
+function applyCatHex(id, raw, commit) {
+  let val = raw.trim();
+  if (!val.startsWith('#')) val = '#' + val;
+  const hidden  = document.getElementById('ce-color-' + id);
+  const preview = document.getElementById('ce-prev-' + id);
+  const picker  = document.getElementById('ce-picker-' + id);
+  const valid   = /^#[0-9a-fA-F]{6}$/.test(val);
+  if (hidden)  hidden.value = valid ? val : (raw.trim() ? raw.trim() : '');
+  if (preview) preview.style.background = valid ? val : 'var(--border)';
+  if (valid && picker) picker.value = val;
+  // En mode commit (onblur) : auto-corriger le champ texte
+  if (commit) {
+    const hi = document.getElementById('ce-hex-' + id);
+    if (hi && valid) hi.value = val;
+  }
+}
+
+// ── Gestion catégories ──────────────────────────
+function saveCatSettings(id) {
+  const lbl   = document.getElementById(`ce-lbl-${id}`)?.value?.trim();
+  const em    = document.getElementById(`ce-em-${id}`)?.value?.trim();
+  const color = document.getElementById(`ce-color-${id}`)?.value?.trim() || '';
+  if (!lbl) { toast('Nom requis'); return; }
+  const customIdx = (settings.customCats||[]).findIndex(c=>c.id===id);
+  if (customIdx >= 0) {
+    settings.customCats[customIdx] = Object.assign({}, settings.customCats[customIdx], {lbl, em: em||settings.customCats[customIdx].em, color: color||undefined});
+  } else {
+    if (!settings.catOverrides) settings.catOverrides = {};
+    settings.catOverrides[id] = Object.assign({}, settings.catOverrides[id]||{}, {lbl, em: em||undefined});
+    if (color) settings.catOverrides[id].color = color; else delete settings.catOverrides[id].color;
+  }
+  catSettingsEditId = null;
+  save(); renderSettings();
+  toast('Catégorie mise à jour ✓');
+}
+
+function saveNewCat() {
+  const lbl   = document.getElementById('ce-lbl-__new__')?.value?.trim();
+  const em    = document.getElementById('ce-em-__new__')?.value?.trim();
+  const color = document.getElementById('ce-color-__new__')?.value?.trim() || '#84c0f0';
+  if (!lbl) { toast('Nom requis'); return; }
+  if (!settings.customCats) settings.customCats = [];
+  settings.customCats.push({id:uid(), lbl, em:em||'📦', color, type:'mensuel', budget:0, plafond:null});
+  catSettingsEditId = null;
+  save(); renderSettings();
+  toast('Catégorie ajoutée ✓');
+}
+
+function deleteCustomCat(id) {
+  if (!confirm('Supprimer cette catégorie ?')) return;
+  settings.customCats = (settings.customCats||[]).filter(c=>c.id!==id);
+  expenses.forEach(e=>{ if(e.catId===id) e.catId='divers'; });
+  catSettingsEditId = null;
+  save(); renderSettings();
+  toast('Catégorie supprimée');
+}
+
+function resetCatOverride(id) {
+  if (!confirm('Réinitialiser cette catégorie aux valeurs par défaut ?')) return;
+  if (settings.catOverrides) delete settings.catOverrides[id];
+  catSettingsEditId = null;
+  save(); renderSettings();
+  toast('Réinitialisé');
+}
+
+function resetAllCats() {
+  if (!confirm('Remettre TOUTES les catégories à leurs valeurs par défaut ?\nLes catégories personnalisées seront supprimées.')) return;
+  settings.catOverrides = {};
+  settings.customCats   = [];
+  // Dépenses liées aux catégories supprimées → remapper sur 'divers'
+  const validIds = new Set(CATS.map(c => c.id));
+  expenses.forEach(e => { if (!validIds.has(e.catId)) e.catId = 'divers'; });
+  catSettingsEditId = null;
+  save(); render(); renderSettings();
+  toast('Toutes les catégories réinitialisées');
 }

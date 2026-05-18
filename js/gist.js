@@ -68,13 +68,17 @@ function gistPayload() {
       rate:           settings.rate,
       budgets:        settings.budgets,
       paymentMethods: settings.paymentMethods,
+      catOverrides:   settings.catOverrides  || {},
+      customCats:     settings.customCats    || [],
+      todoCategories: settings.todoCategories|| [],
       // githubPAT et githubGistId exclus volontairement (sensibles / propres à chaque appareil)
     },
-    pin: localStorage.getItem('mi_pin') || null, // hash SHA-256, jamais le code en clair
+    pin: localStorage.getItem('mi_pin') || null,
     expenses,
     withdrawals,
     gains,
     templates,
+    todoItems,
   };
   return JSON.stringify({ files: { 'mi-depenses.json': { content: JSON.stringify(backup, null, 2) } } });
 }
@@ -141,6 +145,7 @@ async function loadFromGist() {
     if (Array.isArray(d.withdrawals)) withdrawals = d.withdrawals;
     if (Array.isArray(d.gains))       gains       = d.gains;
     if (Array.isArray(d.templates))   templates   = d.templates;
+    if (Array.isArray(d.todoItems))   todoItems   = d.todoItems;
     if (d.settings) {
       settings = {
         ...settings,

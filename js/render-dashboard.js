@@ -40,7 +40,7 @@ function renderDash() {
   const pctUsed   = pct(totalEur, budgetRef);
 
   // Per-category stats
-  const catStats = CATS.filter(c => {
+  const catStats = getCats().filter(c => {
     if (c.id === 'cash') return false;
     if (c.type === 'prepa' && filterMo !== 'all' && filterMo !== 'mai') return false;
     return true;
@@ -51,12 +51,76 @@ function renderDash() {
     return { c, spent, budget };
   }).filter(x=>x.spent>0||x.budget>0);
 
-  // Monthly totals for mini chart
+  // Monthly totals for bar chart
   const monthlyTotals = MONTH_DATES.map(ym =>
     allExp.filter(e=>getMonth(e)===ym && e.catId!=='cash').reduce((s,e)=>s+expenseEur(e),0)
   );
   const monthlyBudgets = MONTHS.map(m => getBudgetGlobal(m));
   const maxMonthly = Math.max(...monthlyTotals, ...monthlyBudgets, 1);
+
+  // Granular progression data for curve mode
+  function buildProgressionData() {
+    const isAll = filterMo === 'all';
+    const granularity = dashChartGranularity;
+    let startStr, endStr, totalBudget;
+    if (isAll) {
+      startStr = '2026-05-01'; endStr = '2026-08-31';
+      totalBudget = monthlyBudgets.reduce((s,v)=>s+v, 0);
+    } else {
+      const idx = MONTHS.indexOf(filterMo);
+      const ym  = MONTH_DATES[idx];
+      const [y, m] = ym.split('-').map(Number);
+      startStr = `${ym}-01`;
+      endStr   = `${ym}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`;
+      totalBudget = getBudgetGlobal(filterMo);
+    }
+    const start = new Date(startStr), end = new Date(endStr);
+    const today = new Date().toISOString().slice(0,10);
+
+    // Build buckets
+    const buckets = [];
+    let d = new Date(start);
+    if (granularity === 'day') {
+      while (d <= end) {
+        const ds = d.toISOString().slice(0,10);
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        buckets.push({ label: `${dd}/${mm}`, date: ds });
+        d.setDate(d.getDate()+1);
+      }
+    } else {
+      while (d <= end) {
+        const ws = d.toISOString().slice(0,10);
+        const we = new Date(d); we.setDate(we.getDate()+6);
+        if (we > end) we.setTime(end.getTime());
+        const wes = we.toISOString().slice(0,10);
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        buckets.push({ label: `${dd}/${mm}`, date: ws, endDate: wes });
+        d.setDate(d.getDate()+7);
+      }
+    }
+
+    const rel = allExp.filter(e => e.catId!=='cash' && e.date >= startStr && e.date <= endStr);
+    let cum = 0;
+    const points = buckets.map(b => {
+      const bEnd = b.endDate || b.date;
+      const v = rel.filter(e => e.date >= b.date && e.date <= bEnd).reduce((s,e)=>s+expenseEur(e),0);
+      cum += v;
+      const isToday = today >= b.date && today <= bEnd;
+      return { label: b.label, value: cum, isToday };
+    });
+
+    // Budget pace line: linear from 0 to totalBudget
+    const totalDays = (end - start) / 86400000 + 1;
+    const budgetPoints = buckets.map(b => {
+      const bEnd = b.endDate || b.date;
+      const dayNum = (new Date(bEnd) - start) / 86400000 + 1;
+      return totalBudget * dayNum / totalDays;
+    });
+
+    return { points, budgetPoints, totalBudget, startStr, endStr };
+  }
 
   // Donut segments
   const donutSegs = catStats.filter(x=>x.spent>0).map(x=>({
@@ -181,12 +245,13 @@ function renderDash() {
   <!-- Monthly mini chart -->
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>Progression mensuelle</span>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:10px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:4px">
-          <span style="display:inline-block;width:18px;height:2px;border-top:2px dashed var(--text3);vertical-align:middle"></span>Budget
-        </span>
-        <button onclick="dashChartMode=dashChartMode==='bar'?'curve':'bar';renderDash()" style="display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer">
+      <span>Progression ${filterMo==='all'?'globale':'mensuelle'}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${dashChartMode==='curve' ? `
+        <button onclick="dashChartGranularity=dashChartGranularity==='week'?'day':'week';renderDash()" style="padding:3px 7px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:10px;font-weight:700;color:var(--text2);cursor:pointer">
+          ${dashChartGranularity==='week'?'📅 Jour':'📆 Semaine'}
+        </button>` : ''}
+        <button onclick="dashChartMode=dashChartMode==='bar'?'curve':'bar';renderDash()" style="padding:3px 8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer">
           ${dashChartMode==='bar'?'∿ Courbe':'▬ Barres'}
         </button>
       </div>
@@ -210,22 +275,74 @@ function renderDash() {
         </div>`;
       }).join('')}
     </div>` : (()=>{
-      const svgW = 280, svgH = 100, padL = 10, padR = 10, padT = 20, padB = 20;
+      const { points, budgetPoints, totalBudget } = buildProgressionData();
+      if (!points.length) return `<div style="text-align:center;color:var(--text3);font-size:13px;padding:24px 0">Aucune dépense</div>`;
+
+      const svgW = 300, svgH = 130, padL = 36, padR = 10, padT = 22, padB = 26;
       const plotW = svgW - padL - padR;
       const plotH = svgH - padT - padB;
-      const xStep = plotW / 3;
-      const points = monthlyTotals.map((v, i) => [padL + i * xStep, padT + plotH - (maxMonthly > 0 ? (v / maxMonthly) * plotH : 0)]);
-      const bPoints = monthlyBudgets.map((v, i) => [padL + i * xStep, padT + plotH - (maxMonthly > 0 ? (v / maxMonthly) * plotH : 0)]);
-      const toPath = pts => pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-      const colors = ['#f0a0b8','#84c0f0','#78d4a0','#b098f4'];
-      return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:120px;overflow:visible">
-        <path d="${toPath(bPoints)}" fill="none" stroke="rgba(0,0,0,0.20)" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <path d="${toPath(points)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        ${points.map((p, i) => `
-          <circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${monthlyTotals[i] > monthlyBudgets[i] ? 'var(--red)' : colors[i]}" stroke="white" stroke-width="1.5"/>
-          ${monthlyTotals[i] > 0 ? `<text x="${p[0]}" y="${p[1] - 8}" text-anchor="middle" font-size="9" font-weight="800" fill="${monthlyTotals[i] > monthlyBudgets[i] ? 'var(--red)' : 'var(--text2)'}" font-family="Nunito,sans-serif">${dashFmt(monthlyTotals[i],0)}</text>` : ''}
-          <text x="${p[0]}" y="${svgH}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="Nunito,sans-serif">${MONTH_LABELS[i]}</text>
+      const maxV  = Math.max(...points.map(p=>p.value), ...budgetPoints, 1);
+
+      const toX = i => padL + (i / (points.length - 1 || 1)) * plotW;
+      const toY = v => padT + plotH - (v / maxV) * plotH;
+
+      const linePath = points.map((p,i) => `${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ');
+      const budPath  = budgetPoints.map((v,i) => `${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+      const areaPath = linePath + ` L${toX(points.length-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${toX(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+
+      // Y-axis labels (3 ticks)
+      const yTicks = [0, 0.5, 1].map(f => ({ v: maxV*f, y: toY(maxV*f) }));
+
+      // X labels: show every Nth to avoid overlap; max ~6 visible
+      const step = Math.ceil(points.length / 6);
+
+      // Today marker index
+      const todayIdx = points.findIndex(p=>p.isToday);
+
+      return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:150px;overflow:visible">
+        <defs>
+          <linearGradient id="prog-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Y-axis ticks and labels -->
+        ${yTicks.map(t => `
+          <line x1="${padL}" y1="${t.y.toFixed(1)}" x2="${svgW-padR}" y2="${t.y.toFixed(1)}" stroke="var(--border)" stroke-width="0.8" stroke-dasharray="3,3"/>
+          <text x="${padL-4}" y="${(t.y+3.5).toFixed(1)}" text-anchor="end" font-size="8" fill="var(--text3)" font-family="Nunito,sans-serif">${t.v>0?dashFmt(t.v,0):''}</text>
         `).join('')}
+
+        <!-- Budget pace line -->
+        <path d="${budPath}" fill="none" stroke="rgba(120,120,160,0.4)" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+        <!-- Area fill -->
+        <path d="${areaPath}" fill="url(#prog-grad)"/>
+
+        <!-- Spending curve -->
+        <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Today marker -->
+        ${todayIdx >= 0 ? `
+          <line x1="${toX(todayIdx).toFixed(1)}" y1="${padT}" x2="${toX(todayIdx).toFixed(1)}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <text x="${toX(todayIdx).toFixed(1)}" y="${(padT-4).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--orange)" font-family="Nunito,sans-serif">Auj.</text>
+        ` : ''}
+
+        <!-- Dots + labels for visible points -->
+        ${points.map((p, i) => {
+          const show = (i % step === 0) || i === points.length - 1;
+          const overBudget = p.value > budgetPoints[i];
+          const dotCol = overBudget ? 'var(--red)' : 'var(--accent)';
+          return `
+            ${show && p.value > 0 ? `<circle cx="${toX(i).toFixed(1)}" cy="${toY(p.value).toFixed(1)}" r="3.5" fill="${dotCol}" stroke="white" stroke-width="1.5"/>
+            <text x="${toX(i).toFixed(1)}" y="${(toY(p.value)-7).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="800" fill="${overBudget?'var(--red)':'var(--text2)'}" font-family="Nunito,sans-serif">${dashFmt(p.value,0)}</text>` : ''}
+            ${show ? `<text x="${toX(i).toFixed(1)}" y="${(padT+plotH+13).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="Nunito,sans-serif">${p.label}</text>` : ''}
+          `;
+        }).join('')}
+
+        <!-- Budget legend -->
+        <line x1="${svgW-60}" y1="${padT+6}" x2="${svgW-48}" y2="${padT+6}" stroke="rgba(120,120,160,0.5)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="${svgW-45}" y="${padT+10}" font-size="8" fill="var(--text3)" font-family="Nunito,sans-serif">Budget</text>
       </svg>`;
     })()}
   </div>

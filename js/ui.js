@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════
 function populateCatSelect() {
   const sel = document.getElementById('f-cat');
-  sel.innerHTML = CATS.filter(c=>c.id!=='cash').map(c=>`<option value="${c.id}">${c.em} ${c.lbl}</option>`).join('');
+  sel.innerHTML = getCats().filter(c=>c.id!=='cash').map(c=>`<option value="${c.id}">${c.em} ${c.lbl}</option>`).join('');
 }
 
 // ══════════════════════════════════════════════

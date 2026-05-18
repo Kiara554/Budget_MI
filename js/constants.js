@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v31';
+const APP_VERSION    = 'v36';
 const OPCO_GLOBAL_MAX = 2500;
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;
@@ -91,7 +91,7 @@ function icon(key, size=20, col='currentColor') {
 }
 
 function catIconHtml(catId, size=22) {
-  const c = CAT_MAP[catId] || CATS[CATS.length-1];
+  const c = getCatMap()[catId] || getCats().at(-1);
   const col = catColor(catId);
   return `<div class="cat-icon-wrap" style="background:${col.bg};color:${col.text}">${icon(c.ic||'divers', size)}</div>`;
 }

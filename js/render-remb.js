@@ -12,11 +12,11 @@ function renderRemb() {
   const totalRemb    = rembExp.reduce((s,e)=>s+expenseEur(e),0);
   const avecRecu     = rembExp.filter(e=>e.recu).reduce((s,e)=>s+expenseEur(e),0);
   const sansRecu     = rembExp.filter(e=>!e.recu).reduce((s,e)=>s+expenseEur(e),0);
-  const plafondTotal = CATS.filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
+  const plafondTotal = getCats().filter(c=>c.plafond).reduce((s,c)=>s+getPlafond(c.id),0);
   const allExpMo     = rembMo==='all' ? expenses.filter(e=>e.catId!=='cash') : expenses.filter(e=>e.catId!=='cash'&&getMonth(e)===MONTH_DATES[MONTHS.indexOf(rembMo)]);
   const totalDepense = allExpMo.reduce((s,e)=>s+expenseEur(e),0);
   // Plafonnement par total de catégorie (pas par dépense individuelle)
-  const totalRembCapped = CATS.reduce((s,c)=>{
+  const totalRembCapped = getCats().reduce((s,c)=>{
     const p = getPlafond(c.id);
     const catTotal = rembExp.filter(e=>e.catId===c.id).reduce((t,e)=>t+expenseEur(e),0);
     return s + (p !== null ? Math.min(catTotal, p) : catTotal);
@@ -29,13 +29,13 @@ function renderRemb() {
   const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
   const monthlyOpco   = MONTH_DATES.map(ym=>{
     const moRemb = allRemb.filter(e=>getMonth(e)===ym);
-    return CATS.reduce((s,c)=>{
+    return getCats().reduce((s,c)=>{
       const p = getPlafond(c.id);
       const catTotal = moRemb.filter(e=>e.catId===c.id).reduce((t,e)=>t+expenseEur(e),0);
       return s + (p !== null ? Math.min(catTotal, p) : catTotal);
     }, 0);
   });
-  const catRemb = CATS.filter(c=>getPlafond(c.id)!==null).map(c=>{
+  const catRemb = getCats().filter(c=>getPlafond(c.id)!==null).map(c=>{
     const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
     const plafond=getPlafond(c.id), quota=Math.min(total,plafond);
     return {c,total,plafond,quota,quotaRestant:plafond-quota};
@@ -341,7 +341,7 @@ async function downloadAllPhotos() {
   const files = [];
   for (let i = 0; i < sorted.length; i++) {
     const e = sorted[i];
-    const cat = CATS.find(c => c.id === e.catId);
+    const cat = getCats().find(c => c.id === e.catId);
     const num = String(i + 1).padStart(2, '0');
     const label = (e.enseigne || cat?.lbl || e.catId).replace(/[^a-zA-Z0-9À-ÿ\-_]/g, '_').slice(0, 25);
     const eur = expenseEur(e).toFixed(0);
@@ -433,7 +433,7 @@ function exportRembExcel() {
   </tr>
   ${sorted.map((e,i) => `<tr class="${i%2===1?'alt':''}">
     <td style="white-space:nowrap;text-align:center">${e.date}</td>
-    <td>${CAT_MAP[e.catId]?.lbl || e.catId}</td>
+    <td>${getCatMap()[e.catId]?.lbl || e.catId}</td>
     <td>${e.enseigne ? escHtml(e.enseigne) : ''}${e.desc ? ' — '+escHtml(e.desc) : ''}</td>
     <td style="text-align:right;font-family:monospace">${Number(e.amount).toFixed(2)} ${e.currency || 'EUR'}</td>
     <td style="text-align:right;font-family:monospace;font-weight:bold">${expenseEur(e).toFixed(2)} €</td>

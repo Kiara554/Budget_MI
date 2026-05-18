@@ -8,7 +8,7 @@ function renderList() {
   // Cat filters
   const row = document.getElementById('cat-filter-row');
   row.innerHTML = `<button class="filter-chip ${catFilter==='all'?'active':''}" onclick="setCatFilter('all')">Tout</button>` +
-    CATS.map(c=>{const col=catColor(c.id);return `<button class="filter-chip ${catFilter===c.id?'active':''}" onclick="setCatFilter('${c.id}')" style="display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13)} ${c.lbl}</button>`;}).join('');
+    getCats().map(c=>{const col=catColor(c.id);return `<button class="filter-chip ${catFilter===c.id?'active':''}" onclick="setCatFilter('${c.id}')" style="display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13)} ${c.lbl}</button>`;}).join('');
 
   const exps = filteredExpenses().sort((a,b)=>b.date.localeCompare(a.date));
   const totalFiltered = exps.reduce((s,e)=>s+expenseEur(e),0);
@@ -46,7 +46,7 @@ function formatDate(d) {
 }
 
 function expenseCard(e) {
-  const cat = CAT_MAP[e.catId] || CATS[CATS.length-1];
+  const _cm = getCatMap(); const cat = _cm[e.catId] || getCats().at(-1);
   const col = catColor(e.catId);
   const eur = expenseEur(e);
   const tnd = expenseTnd(e);

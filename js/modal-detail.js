@@ -5,7 +5,7 @@
 function openDetail(id) {
   detailId = id;
   const e = expenses.find(x=>x.id===id); if(!e) return;
-  const cat = CAT_MAP[e.catId]||CAT_MAP.divers;
+  const _cm = getCatMap(); const cat = _cm[e.catId]||_cm['divers'];
   const col = catColor(e.catId);
   const eur = expenseEur(e);
   const tnd = expenseTnd(e);

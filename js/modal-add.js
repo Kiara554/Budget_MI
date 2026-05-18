@@ -16,7 +16,7 @@ function autoFillRecuName() {
   const enseigne = (document.getElementById('f-enseigne')?.value||'').trim();
   const catId = document.getElementById('f-cat')?.value || '';
   const date = document.getElementById('f-date')?.value || '';
-  const catLabel = CAT_MAP[catId]?.lbl || catId;
+  const catLabel = getCatMap()[catId]?.lbl || catId;
   const parts = [enseigne, catLabel, date].filter(Boolean);
   recuEl.value = parts.join('_').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_\-]/g,'');
 }
@@ -60,7 +60,7 @@ function renderTemplateChips() {
     return;
   }
   el.innerHTML = templates.map(t => {
-    const cat = CATS.find(c => c.id === t.catId);
+    const cat = getCats().find(c => c.id === t.catId);
     return `<button class="tpl-chip" onclick="applyTemplate('${t.id}')">
       ${icon(cat?.ic||'divers', 14)} ${escHtml(t.name)}
       <span class="tpl-chip-del" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</span>
@@ -94,7 +94,7 @@ function saveAsTemplate() {
   const bankFee  = document.getElementById('f-bank').value;
   const payment  = document.getElementById('f-payment').value;
   const remb     = document.getElementById('t-remb').classList.contains('on');
-  const cat      = CATS.find(c => c.id === catId);
+  const cat      = getCats().find(c => c.id === catId);
   const defaultName = enseigne || cat?.lbl || catId;
   const name = prompt('Nom du modèle :', defaultName);
   if (!name) return;
