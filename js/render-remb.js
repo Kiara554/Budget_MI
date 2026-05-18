@@ -247,26 +247,125 @@ function renderRemb() {
 // ══════════════════════════════════════════════
 //  EXPORT / DOWNLOAD
 // ══════════════════════════════════════════════
+function crc32(data) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++) {
+    crc ^= data[i];
+    for (let j = 0; j < 8; j++) crc = (crc & 1) ? (crc >>> 1) ^ 0xEDB88320 : crc >>> 1;
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function dataUrlToBytes(dataUrl) {
+  const b64 = dataUrl.split(',')[1];
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function buildZip(files) {
+  const enc = new TextEncoder();
+  const localHeaders = [];
+  const centralHeaders = [];
+  let offset = 0;
+
+  for (const f of files) {
+    const nameBytes = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const size = f.data.length;
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, 0, true);
+    lv.setUint16(12, 0, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+    localHeaders.push({ lh, data: f.data, nameBytes, crc, size, offset });
+    offset += lh.length + f.data.length;
+  }
+
+  const cdOffset = offset;
+  for (const f of localHeaders) {
+    const ch = new Uint8Array(46 + f.nameBytes.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0, true);
+    cv.setUint32(16, f.crc, true);
+    cv.setUint32(20, f.size, true);
+    cv.setUint32(24, f.size, true);
+    cv.setUint16(28, f.nameBytes.length, true);
+    cv.setUint16(30, 0, true); cv.setUint16(32, 0, true); cv.setUint16(34, 0, true);
+    cv.setUint32(36, 0, true); cv.setUint32(40, 0, true);
+    cv.setUint32(42, f.offset, true);
+    ch.set(f.nameBytes, 46);
+    centralHeaders.push(ch);
+  }
+
+  const cdSize = centralHeaders.reduce((s, c) => s + c.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true); ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, cdOffset, true);
+  ev.setUint16(20, 0, true);
+
+  const parts = [...localHeaders.flatMap(f => [f.lh, f.data]), ...centralHeaders, eocd];
+  const total = parts.reduce((s, p) => s + p.length, 0);
+  const zip = new Uint8Array(total);
+  let pos = 0;
+  parts.forEach(p => { zip.set(p, pos); pos += p.length; });
+  return zip;
+}
+
 async function downloadAllPhotos() {
-  const withPhoto = expenses.filter(e => e.remb && e.photo);
-  if (!withPhoto.length) { toast('Aucun reçu à télécharger'); return; }
-  toast(`Téléchargement de ${withPhoto.length} reçu${withPhoto.length>1?'s':''}…`);
-  const sorted = withPhoto.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const withJustif = expenses.filter(e => e.remb && (e.photo || (e.extraPhotos||[]).length > 0));
+  if (!withJustif.length) { toast('Aucun reçu à télécharger'); return; }
+  toast('Création du ZIP…');
+  const sorted = withJustif.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const files = [];
   for (let i = 0; i < sorted.length; i++) {
-    const e   = sorted[i];
+    const e = sorted[i];
     const cat = CATS.find(c => c.id === e.catId);
     const num = String(i + 1).padStart(2, '0');
-    const label = (e.enseigne || cat?.lbl || e.catId).replace(/[^a-zA-Z0-9À-ÿ\-_]/g, '_').slice(0, 30);
-    const eur  = expenseEur(e).toFixed(0);
-    const filename = `${num}_${e.date}_${label}_${eur}EUR.jpg`;
-    const dataUrl = await toJpeg(e.photo);
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    a.click();
-    await new Promise(r => setTimeout(r, 300));
+    const label = (e.enseigne || cat?.lbl || e.catId).replace(/[^a-zA-Z0-9À-ÿ\-_]/g, '_').slice(0, 25);
+    const eur = expenseEur(e).toFixed(0);
+    if (e.photo) {
+      const isPdf = e.photo.startsWith('data:application/pdf');
+      const ext = isPdf ? 'pdf' : 'jpg';
+      const data = isPdf ? dataUrlToBytes(e.photo) : dataUrlToBytes(await toJpeg(e.photo));
+      files.push({ name: `${num}_${e.date}_${label}_${eur}EUR.${ext}`, data });
+    }
+    (e.extraPhotos || []).forEach((p, j) => {
+      if (!p.data) return;
+      const isPdf = p.type === 'application/pdf';
+      const ext = isPdf ? 'pdf' : 'jpg';
+      files.push({ name: `${num}_${e.date}_${label}_${eur}EUR_extra${j+1}.${ext}`, data: dataUrlToBytes(p.data) });
+    });
   }
-  toast('✓ Tous les reçus téléchargés');
+  const zip = buildZip(files);
+  const blob = new Blob([zip], { type: 'application/zip' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `justificatifs_${new Date().toISOString().slice(0,10)}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`✓ ZIP créé — ${files.length} fichier${files.length>1?'s':''}`);
 }
 
 function exportRembExcel() {

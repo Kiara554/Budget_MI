@@ -18,3 +18,6 @@ let cashMo      = 'all';
 let photoData = null;
 let detailId  = null;
 let editingId = null;
+let dashChartMode = 'bar'; // 'bar' | 'curve'
+let todoItems = [];
+let extraPhotoDatas = []; // justificatifs supplémentaires en cours d'édition

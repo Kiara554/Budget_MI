@@ -40,7 +40,11 @@ function renderDash() {
   const pctUsed   = pct(totalEur, budgetRef);
 
   // Per-category stats
-  const catStats = CATS.filter(c=>c.id!=='cash').map(c=>{
+  const catStats = CATS.filter(c => {
+    if (c.id === 'cash') return false;
+    if (c.type === 'prepa' && filterMo !== 'all' && filterMo !== 'mai') return false;
+    return true;
+  }).map(c=>{
     const exps = spendExp.filter(e=>e.catId===c.id);
     const spent = exps.reduce((s,e)=>s+expenseEur(e),0);
     const budget = c.type==='mensuel' && filterMo!=='all' ? getBudget(c.id) : (c.type==='mensuel' ? getBudget(c.id)*4 : getBudget(c.id));
@@ -178,10 +182,16 @@ function renderDash() {
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Progression mensuelle</span>
-      <span style="font-size:10px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:4px">
-        <span style="display:inline-block;width:18px;height:2px;border-top:2px dashed var(--text3);vertical-align:middle"></span>Budget
-      </span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:var(--text3);font-weight:600;display:flex;align-items:center;gap:4px">
+          <span style="display:inline-block;width:18px;height:2px;border-top:2px dashed var(--text3);vertical-align:middle"></span>Budget
+        </span>
+        <button onclick="dashChartMode=dashChartMode==='bar'?'curve':'bar';renderDash()" style="display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer">
+          ${dashChartMode==='bar'?'∿ Courbe':'▬ Barres'}
+        </button>
+      </div>
     </div>
+    ${dashChartMode === 'bar' ? `
     <div class="monthly-bars">
       ${MONTH_DATES.map((ym,i)=>{
         const v      = monthlyTotals[i];
@@ -199,7 +209,25 @@ function renderDash() {
           <div class="monthly-bar-label">${MONTH_LABELS[i]}</div>
         </div>`;
       }).join('')}
-    </div>
+    </div>` : (()=>{
+      const svgW = 280, svgH = 100, padL = 10, padR = 10, padT = 20, padB = 20;
+      const plotW = svgW - padL - padR;
+      const plotH = svgH - padT - padB;
+      const xStep = plotW / 3;
+      const points = monthlyTotals.map((v, i) => [padL + i * xStep, padT + plotH - (maxMonthly > 0 ? (v / maxMonthly) * plotH : 0)]);
+      const bPoints = monthlyBudgets.map((v, i) => [padL + i * xStep, padT + plotH - (maxMonthly > 0 ? (v / maxMonthly) * plotH : 0)]);
+      const toPath = pts => pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      const colors = ['#f0a0b8','#84c0f0','#78d4a0','#b098f4'];
+      return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:120px;overflow:visible">
+        <path d="${toPath(bPoints)}" fill="none" stroke="rgba(0,0,0,0.20)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <path d="${toPath(points)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points.map((p, i) => `
+          <circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${monthlyTotals[i] > monthlyBudgets[i] ? 'var(--red)' : colors[i]}" stroke="white" stroke-width="1.5"/>
+          ${monthlyTotals[i] > 0 ? `<text x="${p[0]}" y="${p[1] - 8}" text-anchor="middle" font-size="9" font-weight="800" fill="${monthlyTotals[i] > monthlyBudgets[i] ? 'var(--red)' : 'var(--text2)'}" font-family="Nunito,sans-serif">${dashFmt(monthlyTotals[i],0)}</text>` : ''}
+          <text x="${p[0]}" y="${svgH}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="Nunito,sans-serif">${MONTH_LABELS[i]}</text>
+        `).join('')}
+      </svg>`;
+    })()}
   </div>
 
   <!-- Gains & Solde net -->

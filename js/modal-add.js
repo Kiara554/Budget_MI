@@ -24,6 +24,7 @@ function autoFillRecuName() {
 function openAddModal() {
   editingId = null;
   photoData = null;
+  extraPhotoDatas = [];
   document.getElementById('modal-add-title').textContent = 'Nouvelle dépense';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-cat').value = 'alim';
@@ -42,6 +43,7 @@ function openAddModal() {
   autoSetRemb();
   setToggle('t-recu', false);
   updatePhotoPreview();
+  renderExtraPhotosPreviews();
   renderTemplateChips();
   document.getElementById('tpl-section').style.display = '';
   document.getElementById('btn-save-tpl').style.display = '';
@@ -112,6 +114,7 @@ function openEdit(id) {
   const e = expenses.find(x=>x.id===id); if(!e) return;
   editingId = id;
   photoData = e.photo || null;
+  extraPhotoDatas = (e.extraPhotos||[]).map(p => ({id: p.id, data: p.data||'', type: p.type}));
   closeModal('modal-detail');
   document.getElementById('modal-add-title').textContent = 'Modifier la dépense';
   document.getElementById('f-date').value  = e.date;
@@ -129,6 +132,7 @@ function openEdit(id) {
   setToggle('t-remb', !!e.remb);
   setToggle('t-recu', !!e.recu);
   updatePhotoPreview();
+  renderExtraPhotosPreviews();
   document.getElementById('tpl-section').style.display = 'none';
   document.getElementById('btn-save-tpl').style.display = 'none';
   openModal('modal-add');
@@ -151,19 +155,23 @@ function submitAdd() {
   if(isNaN(amount)||amount<0) return toast('Montant invalide');
   if(remb && !recu && !photoData) toast('⚠️ Remboursable sans reçu — pense à ajouter le justificatif');
 
+  const extraPhotosToSave = extraPhotoDatas.map(p => ({ id: p.id, type: p.type }));
   if(editingId) {
     const idx = expenses.findIndex(x=>x.id===editingId);
     if(idx>=0) {
       // createdAt preserved — never overwritten on edit
-      expenses[idx] = {...expenses[idx], date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData};
+      expenses[idx] = {...expenses[idx], date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, extraPhotos: extraPhotosToSave};
     }
     toast('Dépense modifiée !');
   } else {
     const ym = date.slice(0,7);
     const moIdx = MONTH_DATES.indexOf(ym);
-    expenses.push({ id:uid(), date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, month: moIdx>=0?MONTHS[moIdx]:null, createdAt: new Date().toISOString() });
+    expenses.push({ id:uid(), date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, extraPhotos: extraPhotosToSave, month: moIdx>=0?MONTHS[moIdx]:null, createdAt: new Date().toISOString() });
     toast('Dépense ajoutée !');
   }
+  extraPhotoDatas.forEach(p => {
+    if (p.data) savePhotoIDB(p.id, p.data).catch(console.warn);
+  });
   save();
   closeModal('modal-add');
   editingId = null;

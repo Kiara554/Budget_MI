@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════════════
-const APP_VERSION    = 'v29';
+const APP_VERSION    = 'v31';
 const OPCO_GLOBAL_MAX = 2500;
 const BUDGET_TOTAL   = 5495;
 const BUDGET_PREPA   = 1100;

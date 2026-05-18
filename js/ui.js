@@ -118,4 +118,5 @@ function render() {
   else if(curView==='cash') renderCash();
   else if(curView==='remb') renderRemb();
   else if(curView==='settings') renderSettings();
+  else if(curView==='todo') renderTodo();
 }

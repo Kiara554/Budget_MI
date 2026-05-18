@@ -71,8 +71,24 @@ function openDetail(id) {
     ${e.desc ? `<div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:14px;color:var(--text);font-weight:600">${escHtml(e.desc)}</div>` : ''}
 
     ${e.photo ? `
-      <div style="margin-bottom:14px;border-radius:12px;overflow:hidden;max-height:200px">
-        <img src="${e.photo}" style="width:100%;object-fit:cover;display:block" alt="Justificatif">
+      <div style="margin-bottom:6px;border-radius:12px;overflow:hidden;max-height:200px">
+        ${e.photo.startsWith('data:application/pdf')
+          ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px;background:var(--surface2);border-radius:12px"><span style="font-size:40px">📄</span><a href="${e.photo}" target="_blank" style="font-size:12px;color:var(--accent);text-decoration:underline">Ouvrir le PDF ↗</a></div>`
+          : `<img src="${e.photo}" style="width:100%;object-fit:cover;display:block" alt="Justificatif">`
+        }
+      </div>
+    ` : ''}
+    ${(e.extraPhotos||[]).length > 0 ? `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        ${(e.extraPhotos||[]).map((p, j) => {
+          const isPdf = p.type === 'application/pdf';
+          return `<div style="position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--surface2)">
+            ${isPdf
+              ? `<a href="${p.data||''}" target="_blank" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:24px;text-decoration:none">📄</a>`
+              : `<img src="${p.data||''}" style="width:100%;height:100%;object-fit:cover">`
+            }
+          </div>`;
+        }).join('')}
       </div>
     ` : ''}
 
@@ -106,7 +122,7 @@ function openDetail(id) {
 
     <div class="btn-row" style="margin-bottom:10px">
       <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openEdit('${e.id}')">${icon('edit',16)} Modifier</button>
-      <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="addPhotoAfter('${e.id}')">${icon('camera',16)} ${e.photo?'Changer le reçu':'Ajouter un reçu'}</button>
+      <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="addPhotoAfter('${e.id}')">${icon('camera',16)} Ajouter un justificatif</button>
     </div>
     <button class="btn btn-red" style="min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%" onclick="deleteExpense('${e.id}')">${icon('trash',16,'var(--red)')} Supprimer</button>
     <div style="height:8px"></div>

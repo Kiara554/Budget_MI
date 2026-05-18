@@ -51,15 +51,22 @@ function getAllPhotosIDB() {
 // ══════════════════════════════════════════════
 function save() {
   // Photos stockées dans IndexedDB — on les retire du localStorage
-  const expForStorage = expenses.map(({ photo, ...rest }) => rest);
+  const expForStorage = expenses.map(({ photo, ...rest }) => ({
+    ...rest,
+    extraPhotos: (rest.extraPhotos || []).map(({ data, ...p }) => p)
+  }));
   localStorage.setItem('mi_expenses',    JSON.stringify(expForStorage));
   localStorage.setItem('mi_withdrawals', JSON.stringify(withdrawals));
   localStorage.setItem('mi_gains',       JSON.stringify(gains));
   localStorage.setItem('mi_templates',   JSON.stringify(templates));
   localStorage.setItem('mi_settings',    JSON.stringify(settings));
+  localStorage.setItem('mi_todos',       JSON.stringify(todoItems));
   // Persistance des photos dans IndexedDB
   expenses.forEach(e => {
     if (e.photo?.startsWith('data:')) savePhotoIDB(e.id, e.photo).catch(console.warn);
+    (e.extraPhotos || []).forEach(p => {
+      if (p.data?.startsWith('data:')) savePhotoIDB(p.id, p.data).catch(console.warn);
+    });
   });
   debouncedGistSync();
 }
@@ -74,6 +81,7 @@ async function load() {
   } catch(e) {
     settings = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
   }
+  try { todoItems = JSON.parse(localStorage.getItem('mi_todos')) || []; } catch(e){ todoItems=[]; }
   // Restauration des photos depuis IndexedDB
   try {
     const photos = await getAllPhotosIDB();
@@ -84,6 +92,9 @@ async function load() {
         // Migration : photo encore en base64 dans localStorage → IndexedDB
         savePhotoIDB(e.id, e.photo).catch(console.warn);
       }
+      (e.extraPhotos || []).forEach(p => {
+        if (photos[p.id]) p.data = photos[p.id];
+      });
     });
   } catch (err) { console.warn('IndexedDB indisponible:', err); }
 }
