@@ -427,7 +427,7 @@ function renderDash() {
       <div style="display:flex;align-items:center;gap:6px">
         ${dashChartMode==='curve' ? `
         <button onclick="dashChartGranularity=dashChartGranularity==='week'?'day':'week';renderDash()" style="padding:3px 7px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:10px;font-weight:700;color:var(--text2);cursor:pointer">
-          ${dashChartGranularity==='week'?'📅 Jour':'📆 Semaine'}
+          ${icon('calendar',10,'var(--text2)')} ${dashChartGranularity==='week'?'Jour':'Semaine'}
         </button>` : ''}
         <button onclick="dashChartMode=dashChartMode==='bar'?'curve':'bar';renderDash()" style="padding:3px 8px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);font-size:11px;font-weight:700;color:var(--text2);cursor:pointer">
           ${dashChartMode==='bar'?'∿ Courbe':'▬ Barres'}

@@ -124,15 +124,39 @@ function openDetail(id) {
       <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openEdit('${e.id}')">${icon('edit',16)} Modifier</button>
       <button class="btn btn-outline btn-sm" style="flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px" onclick="addPhotoAfter('${e.id}')">${icon('camera',16)} Ajouter un justificatif</button>
     </div>
-    <button class="btn btn-red" style="min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%" onclick="deleteExpense('${e.id}')">${icon('trash',16,'var(--red)')} Supprimer</button>
+    <button class="btn btn-red" id="del-btn-${e.id}" style="min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:none;border:1.5px solid var(--red);color:var(--red)" onclick="deleteExpense('${e.id}')">${icon('trash',16,'var(--red)')} Supprimer</button>
     <div style="height:8px"></div>
   `;
   openModal('modal-detail');
 }
 
+let _deleteConfirmTimer = null;
 function deleteExpense(id) {
-  if(!confirm('Supprimer cette dépense ?')) return;
+  const btn = document.getElementById(`del-btn-${id}`);
+  if (!btn) return;
+  if (btn.dataset.pending !== '1') {
+    // 1er clic : passer en mode confirmation
+    btn.dataset.pending = '1';
+    btn.style.background = 'var(--red)';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.innerHTML = `${icon('trash',16,'#fff')} Confirmer la suppression`;
+    clearTimeout(_deleteConfirmTimer);
+    _deleteConfirmTimer = setTimeout(() => {
+      if (btn && btn.dataset.pending === '1') {
+        btn.dataset.pending = '0';
+        btn.style.background = 'none';
+        btn.style.color = 'var(--red)';
+        btn.style.border = '1.5px solid var(--red)';
+        btn.innerHTML = `${icon('trash',16,'var(--red)')} Supprimer`;
+      }
+    }, 3000);
+    return;
+  }
+  // 2e clic : confirmer et supprimer
+  clearTimeout(_deleteConfirmTimer);
   deletePhotoIDB(id).catch(console.warn);
+  (expenses.find(e=>e.id===id)?.extraPhotos||[]).forEach(p=>deletePhotoIDB(p.id).catch(console.warn));
   expenses = expenses.filter(e=>e.id!==id);
   save(); closeModal('modal-detail'); render();
   toast('Dépense supprimée');

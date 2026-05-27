@@ -130,6 +130,48 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → les ~3600 lignes restantes dans index.html sont du HTML/CSS, pas de logique
 
 
+── BUGS ───────────────────────────────────────────────────────────────────────
+
+[x] Bug : gains et todoItems non persistés après loadFromGist()
+    → _applyGistData() n'appelait pas localStorage.setItem('mi_gains'/'mi_todos')
+    → fix : ajout de setItem('mi_gains') + setItem('mi_todos') dans _applyGistData()
+
+[x] Emoji dans les boutons du graphique de progression
+    → remplacé par icon('calendar',10) + texte 'Jour'/'Semaine' (render-dashboard.js)
+
+
+── ROBUSTESSE ─────────────────────────────────────────────────────────────────
+
+[x] Double render() après loadFromGist() + loadPhotosFromGist()
+    → loadPhotosFromGist(triggerRender=true) : false quand chaîné depuis loadFromGist(), true depuis bouton manuel
+    → _applyGistData() appelle loadPhotosFromGist(false)
+
+[x] Conflit Gist côté push : vérifier updated_at avant PATCH
+    → syncToGist(manualSync=false) : auto-debounce push direct, pas de GET préalable
+    → syncToGist(manualSync=true) : GET préalable → si updated_at > lastGistSync → toast d'avertissement + stop
+    → boutons "Sauvegarder" et "↑ Sync" passent true ; debouncedGistSync() et savePAT() restent à false
+
+
+── UX AMÉLIORATIONS ───────────────────────────────────────────────────────────
+
+[x] Indicateur offline / online
+    → initOfflineIndicator() dans app.js : events 'offline'/'online' sur window
+    → bandeau orange fixe en haut (#offline-banner) : slide-down en CSS, slide-up quand reconnecté
+    → toast "De nouveau connecté" + debouncedGistSync() au retour en ligne
+    → icône wifi-off ajoutée à ICON_PATHS (constants.js)
+
+[x] Reliquat OPCO par catégorie dans la vue Remboursements
+    → carte "Reliquat OPCO par catégorie" après la barre plafond global (render-remb.js)
+    → mini progress bar colorée par cat. plafonnée : vert < 70%, orange < 90%, rouge = épuisé
+    → badge vert "+XXX€ restant" ou "Épuisé" en gris, affiché pour toutes vues (mois + all)
+
+[x] Confirmation avant suppression d'une dépense
+    → pattern deux étapes : 1er clic → bouton rouge "Confirmer la suppression" (3s pour valider)
+    → 2e clic → suppression effective + nettoyage photos extraPhotos dans IDB
+    → annulation auto après 3s si pas de 2e clic (bouton revient à l'état initial)
+    → supprime aussi le confirm() natif (peu mobile-friendly)
+
+
 ── PRIORITÉ ───────────────────────────────────────────────────────────────────
 
 [x] Calcul budget par mois dans "Budget total stage" : se met à jour en live

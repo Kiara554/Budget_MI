@@ -44,6 +44,30 @@ function navigateMonth(dir) {
   render();
 }
 
+function initOfflineIndicator() {
+  const banner = document.getElementById('offline-banner');
+  if (!banner) return;
+  let _wasOffline = false;
+
+  const setOffline = () => {
+    _wasOffline = true;
+    banner.innerHTML = `${icon('wifi-off', 13, '#fff')} Hors ligne — modifications sauvegardées localement`;
+    banner.classList.add('visible');
+  };
+  const setOnline = () => {
+    banner.classList.remove('visible');
+    if (_wasOffline) {
+      _wasOffline = false;
+      toast('De nouveau connecté');
+      if (settings.githubPAT) debouncedGistSync();
+    }
+  };
+
+  window.addEventListener('offline', setOffline);
+  window.addEventListener('online',  setOnline);
+  if (!navigator.onLine) setOffline(); // état initial si déjà hors ligne
+}
+
 function initSwipe() {
   let _sx = 0, _sy = 0;
   document.addEventListener('touchstart', e => {
@@ -99,6 +123,7 @@ async function init() {
   updateTodoBadge();
   initLock();
   initSwipe();
+  initOfflineIndicator();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       reg.addEventListener('updatefound', () => {

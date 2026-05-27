@@ -134,6 +134,31 @@ function renderRemb() {
       </div>
     </div>
 
+    <!-- Reliquat OPCO par catégorie plafonnée -->
+    ${catRemb.filter(({plafond})=>plafond!==null&&plafond>0).length>0 ? `
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">Reliquat OPCO par catégorie</div>
+      ${catRemb.filter(({plafond})=>plafond!==null&&plafond>0).map(({c,total,plafond,quota,quotaRestant})=>{
+        const pct = plafond>0 ? Math.min((quota/plafond)*100,100) : 0;
+        const col = pct<70?'var(--green)':pct<90?'var(--orange)':'var(--red)';
+        const colTxt = pct<70?'var(--green)':pct<90?'var(--orange)':'var(--red)';
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text)">${catIconHtml(c.id,14)} ${c.lbl}</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:700;font-family:var(--fm);color:var(--text2)">${fmtEur(quota,0)} / ${fmtEur(plafond,0)}</span>
+              ${quotaRestant>0
+                ? `<span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-pale);padding:2px 7px;border-radius:10px">+${fmtEur(quotaRestant,0)}</span>`
+                : `<span style="font-size:11px;font-weight:800;color:var(--text3)">Épuisé</span>`}
+            </span>
+          </div>
+          <div class="prog-bar-bg" style="height:6px">
+            <div class="prog-bar" style="width:${pct.toFixed(1)}%;background:${col}"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
     ${rembMo==='all' ? `
     <div class="card">
       <div class="card-title">Récap par mois</div>

@@ -83,7 +83,9 @@ function gistPayload() {
   return JSON.stringify({ files: { 'mi-depenses.json': { content: JSON.stringify(backup, null, 2) } } });
 }
 
-async function syncToGist() {
+// manualSync=true (bouton "Sauvegarder") → vérifie si le Gist a été modifié par un autre appareil avant d'écraser
+// manualSync=false (auto-debounce) → push direct, pas de GET préalable
+async function syncToGist(manualSync = false) {
   if (!settings.githubPAT) {
     toast('Configure le token GitHub dans Réglages → Sauvegarde cloud');
     return;
@@ -92,6 +94,20 @@ async function syncToGist() {
   try {
     let resp, gist;
     if (settings.githubGistId) {
+      // Vérification de conflit push : seulement en sync manuelle (évite le double GET en auto-sync)
+      if (manualSync && settings.lastGistSync) {
+        const chk = await fetch(`https://api.github.com/gists/${settings.githubGistId}`, {
+          headers: gistHeaders(),
+        });
+        if (chk.ok) {
+          const chkGist = await chk.json();
+          if (chkGist.updated_at && chkGist.updated_at > settings.lastGistSync) {
+            setSyncState('idle');
+            toast('Le Gist a été modifié depuis un autre appareil — charge d\'abord avant de sauvegarder');
+            return;
+          }
+        }
+      }
       resp = await fetch(`https://api.github.com/gists/${settings.githubGistId}`, {
         method: 'PATCH', headers: gistHeaders(), body: gistPayload(),
       });
@@ -171,7 +187,8 @@ async function syncPhotosToGist() {
   }
 }
 
-async function loadPhotosFromGist() {
+// triggerRender=true quand appelé manuellement (bouton), false quand chaîné après loadFromGist()
+async function loadPhotosFromGist(triggerRender = true) {
   if (!settings.githubGistId || !settings.githubPAT) {
     toast('Connecte-toi d\'abord à GitHub Gist');
     return;
@@ -195,7 +212,7 @@ async function loadPhotosFromGist() {
     });
     const nb = entries.length;
     toast(`${nb} photo${nb > 1 ? 's' : ''} restaurée${nb > 1 ? 's' : ''} depuis Gist`);
-    render();
+    if (triggerRender) render(); // évite double render quand chaîné après loadFromGist()
   } catch (e) {
     toast('Chargement photos Gist : ' + e.message);
     console.error(e);
@@ -282,12 +299,14 @@ async function loadFromGist(autoLoad = false) {
       if (d.pin) localStorage.setItem('mi_pin', d.pin);
       localStorage.setItem('mi_expenses',    JSON.stringify(expenses));
       localStorage.setItem('mi_withdrawals', JSON.stringify(withdrawals));
+      localStorage.setItem('mi_gains',       JSON.stringify(gains));
+      localStorage.setItem('mi_todos',       JSON.stringify(todoItems));
       localStorage.setItem('mi_settings',    JSON.stringify(settings));
       setSyncState('synced');
       render();
       renderSettings();
       toast(`Chargé depuis Gist — ${expenses.length} dépenses (${d.savedAt?.slice(0,10)||'?'})`);
-      if (settings.syncPhotos) loadPhotosFromGist().catch(console.warn);
+      if (settings.syncPhotos) loadPhotosFromGist(false).catch(console.warn); // false = pas de double render
     };
 
     if (isConflict) {

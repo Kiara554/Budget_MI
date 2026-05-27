@@ -109,7 +109,7 @@ function renderSettings() {
       </div>
       <div class="btn-row" style="margin-bottom:8px">
         <button class="btn btn-accent" onclick="savePAT()" style="min-height:44px">Connecter</button>
-        <button class="btn btn-outline" onclick="syncToGist()" style="min-height:44px" ${gistOk?'':'disabled'}>Sauvegarder</button>
+        <button class="btn btn-outline" onclick="syncToGist(true)" style="min-height:44px" ${gistOk?'':'disabled'}>Sauvegarder</button>
       </div>
       <div class="btn-row" style="margin-bottom:10px">
         <button class="btn btn-outline" onclick="loadFromGist()" style="min-height:44px" ${settings.githubGistId?'':'disabled'}>Charger depuis Gist</button>
@@ -281,7 +281,7 @@ function renderSettings() {
         <div id="gist-status" class="gist-status-badge ${gistOk?(_syncState==='synced'?'synced':'idle'):'idle'}">${gistOk?(_syncState==='synced'?'✓ Sauvegardé':'● Connecté'):'○ Non configuré'}</div>
       </div>
       <div style="display:flex;gap:6px">
-        ${gistOk?`<button onclick="syncToGist()" style="padding:5px 12px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">↑ Sync</button>`:''}
+        ${gistOk?`<button onclick="syncToGist(true)" style="padding:5px 12px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">↑ Sync</button>`:''}
         <button onclick="settingsOpen['gist']=!settingsOpen['gist'];renderSettings()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text3);font-size:12px;font-weight:700;cursor:pointer">⚙️</button>
       </div>
     </div>
