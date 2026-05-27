@@ -255,6 +255,23 @@ function renderSettings() {
     <p style="font-size:11px;color:var(--text3);margin-top:6px">💳 Carte · 💵 Espèces · 🔄 Virement · 📱 Mobile</p>
   </div>`;
 
+  const stageBody = `<div class="card" style="margin-bottom:0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label class="form-label">Début du stage</label>
+        <input type="date" id="s-stage-start" class="form-input" value="${settings.stageStart||'2026-05-01'}"
+          style="font-family:var(--fm);font-size:13px">
+      </div>
+      <div>
+        <label class="form-label">Fin du stage</label>
+        <input type="date" id="s-stage-end" class="form-input" value="${settings.stageEnd||'2026-08-31'}"
+          style="font-family:var(--fm);font-size:13px">
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin:0 0 10px">Utilisé pour le compte à rebours, le graphique global et les labels de dates.</p>
+    <button class="btn btn-accent" onclick="saveStage()" style="min-height:40px;width:100%">Enregistrer</button>
+  </div>`;
+
   const exportBody = `<div class="card" style="margin-bottom:0">
     <div class="btn-row" style="margin-bottom:8px">
       <button class="btn btn-accent" onclick="exportData()">Exporter JSON</button>
@@ -298,6 +315,7 @@ function renderSettings() {
       row('cats',         'var(--accent-pale)',  '🏷️', 'Catégories',          getCats().length+' catégories',                        catsBody,         false),
       row('budgets',      'var(--green-pale)',   '💰', 'Budgets détaillés',   fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0), budgetsCatBody,   false),
       row('budgetGlobal', 'var(--accent-pale)',  '🎯', 'Budget total stage',  fmtEur(computeBudgetTotal(),0),                        budgetGlobalBody, false),
+      row('stage',        'var(--blue-pale)',    '📅', 'Dates du stage',      `${settings.stageStart||'2026-05-01'} → ${settings.stageEnd||'2026-08-31'}`, stageBody, false),
     ])}
 
     <!-- PAIEMENTS & TAUX -->
@@ -454,6 +472,19 @@ function saveRate() {
   settings.rate = v;
   save();
   toast('Taux sauvegardé : 1€ = '+v+' TND');
+}
+
+function saveStage() {
+  const start = document.getElementById('s-stage-start')?.value;
+  const end   = document.getElementById('s-stage-end')?.value;
+  if (!start || !end)         return toast('Dates invalides');
+  if (start >= end)           return toast('La date de début doit être avant la fin');
+  settings.stageStart = start;
+  settings.stageEnd   = end;
+  localStorage.setItem('mi_settings', JSON.stringify(settings));
+  renderSettings();
+  if (curView === 'dashboard') renderDash();
+  toast('Dates du stage mises à jour');
 }
 
 function updateBudgetLive() {

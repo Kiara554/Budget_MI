@@ -75,7 +75,8 @@ function renderDash() {
     const granularity = dashChartGranularity;
     let startStr, endStr, totalBudget;
     if (isAll) {
-      startStr = '2026-05-01'; endStr = '2026-08-31';
+      startStr = settings.stageStart || '2026-05-01';
+      endStr   = settings.stageEnd   || '2026-08-31';
       totalBudget = monthlyBudgets.reduce((s,v)=>s+v, 0);
     } else {
       const idx = MONTHS.indexOf(filterMo);
@@ -173,27 +174,31 @@ function renderDash() {
     : null;
 
   const body = document.getElementById('dash-body');
-  // Compte à rebours fin de stage
-  const _today    = new Date(); _today.setHours(0,0,0,0);
-  const _stageEnd = new Date('2026-08-31'); _stageEnd.setHours(0,0,0,0);
-  const _stageStart = new Date('2026-05-01'); _stageStart.setHours(0,0,0,0);
+  // Compte à rebours fin de stage (dates issues des réglages)
+  const _today      = new Date(); _today.setHours(0,0,0,0);
+  const _stageEnd   = new Date((settings.stageEnd   || '2026-08-31') + 'T12:00:00'); _stageEnd.setHours(0,0,0,0);
+  const _stageStart = new Date((settings.stageStart || '2026-05-01') + 'T12:00:00'); _stageStart.setHours(0,0,0,0);
   const _daysLeft = Math.ceil((_stageEnd - _today) / 86400000);
   const _stageStarted = _today >= _stageStart;
   const _stageOver    = _today > _stageEnd;
+  // Labels formatés depuis les dates réglages
+  const _fmtShortDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+  const _startLabel = _fmtShortDate(settings.stageStart || '2026-05-01');
+  const _endLabel   = _fmtShortDate(settings.stageEnd   || '2026-08-31');
   const _countdownHtml = (() => {
     if (_stageOver)   return `<div style="display:flex;align-items:center;gap:6px;justify-content:center;font-size:13px;color:var(--text3);padding:10px 0">${icon('check',14,'var(--green)')} Stage terminé</div>`;
     if (!_stageStarted) {
       const d = Math.ceil((_stageStart - _today) / 86400000);
       return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--accent-pale);border-radius:14px;padding:10px 14px;margin-bottom:4px">
         <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--accent)">${icon('calendar',14,'var(--accent)')} Départ dans ${d} jour${d>1?'s':''}</span>
-        <span style="font-size:12px;color:var(--text3)">1er mai 2026</span>
+        <span style="font-size:12px;color:var(--text3)">${_startLabel}</span>
       </div>`;
     }
     const col = _daysLeft <= 7 ? 'var(--red)' : _daysLeft <= 14 ? 'var(--orange)' : 'var(--accent)';
     const bg  = _daysLeft <= 7 ? 'var(--red-pale)' : _daysLeft <= 14 ? 'var(--orange-pale)' : 'var(--accent-pale)';
     return `<div style="display:flex;align-items:center;justify-content:space-between;background:${bg};border-radius:14px;padding:10px 14px;margin-bottom:4px">
       <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:${col}">${icon('clock',14,col)} Il reste <strong>${_daysLeft}</strong> jour${_daysLeft>1?'s':''}</span>
-      <span style="font-size:12px;color:var(--text3)">Fin le 31 août</span>
+      <span style="font-size:12px;color:var(--text3)">Fin le ${_endLabel}</span>
     </div>`;
   })();
 
@@ -239,7 +244,7 @@ function renderDash() {
       <div class="stat-card accent-bg">
         <div class="stat-label">Budget total</div>
         <div class="stat-value mono">${dashFmt(budgetRef,0)}</div>
-        <div class="stat-small">${filterMo==='all'?'Mai – Août 2026':MONTH_LABELS[MONTHS.indexOf(filterMo)]}</div>
+        <div class="stat-small">${filterMo==='all'?`${_startLabel} – ${_endLabel}`:MONTH_LABELS[MONTHS.indexOf(filterMo)]}</div>
       </div>
       <div class="stat-card ${reste>=0?'green-bg':'red-bg'}">
         <div class="stat-label">Reste</div>
