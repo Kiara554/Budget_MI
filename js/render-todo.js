@@ -223,10 +223,11 @@ function renderTodo() {
 }
 
 function renderTodoItem(t, cats) {
-  const cat  = cats.find(c => c.id === t.cat);
-  const pr   = t.priority ? TODO_PRIO[t.priority] : null;
-  const due  = todoDueTxt(t.dueDate);
-  const today= new Date().toISOString().slice(0,10);
+  const cat     = cats.find(c => c.id === t.cat);
+  const pr      = t.priority ? TODO_PRIO[t.priority] : null;
+  const due     = todoDueTxt(t.dueDate);
+  const today   = new Date().toISOString().slice(0,10);
+  const _lnkExp = t.expenseId ? expenses.find(x => x.id === t.expenseId) : null;
 
   const leftBorder = pr ? `border-left:3px solid ${pr.color}` : 'border-left:3px solid transparent';
 
@@ -272,6 +273,20 @@ function renderTodoItem(t, cats) {
       <textarea class="form-input" id="tp-notes-${t.id}" placeholder="Contexte, détails…"
         style="width:100%;min-height:64px;margin-bottom:12px;box-sizing:border-box;resize:vertical;font-size:13px;line-height:1.4"
       >${escHtml(t.notes||'')}</textarea>
+      <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">DÉPENSE LIÉE</div>
+      <input type="hidden" id="tp-exp-${t.id}" value="${t.expenseId||''}">
+      <div id="tp-exp-display-${t.id}" style="display:${_lnkExp?'flex':'none'};align-items:center;gap:7px;padding:8px 10px;background:var(--surface2);border-radius:10px;margin-bottom:12px">
+        ${_lnkExp ? `<span style="flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${_lnkExp.enseigne?escHtml(_lnkExp.enseigne):(getCatMap()[_lnkExp.catId]?.lbl||'Divers')} · ${formatDate(_lnkExp.date)} · ${fmtEur(expenseEur(_lnkExp),2)}
+        </span>
+        <button type="button" onclick="clearTodoExp('${t.id}')" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--text3);padding:2px">${icon('xmark',12,'var(--text3)')}</button>` : ''}
+      </div>
+      <div id="tp-exp-picker-${t.id}" style="display:${_lnkExp?'none':'block'};margin-bottom:12px">
+        <input type="text" class="form-input" id="tp-exp-search-${t.id}" placeholder="Rechercher une dépense…"
+          oninput="filterTodoExpPicker('${t.id}')"
+          style="width:100%;box-sizing:border-box;font-size:13px;margin-bottom:6px">
+        <div id="tp-exp-list-${t.id}" style="max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
+      </div>
       <div style="display:flex;gap:6px">
         <button onclick="saveTodoEdit('${t.id}')" style="flex:1;padding:9px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Enregistrer</button>
         <button onclick="todoEditId=null;renderTodo()" style="padding:9px 14px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--text2);font-size:13px;cursor:pointer">Annuler</button>
@@ -292,6 +307,15 @@ function renderTodoItem(t, cats) {
         ${pr&&!t.done?`<span style="font-size:11px;font-weight:700;color:${pr.color};padding:1px 7px;border-radius:10px;background:${pr.pale}">${pr.dot} ${pr.label}</span>`:''}
         ${due?`<span style="font-size:11px;font-weight:700;color:${due.col};padding:1px 7px;border-radius:10px;background:${due.bg}">📅 ${due.label}</span>`:''}
         ${cat?`<span style="font-size:11px;font-weight:700;color:${cat.color?'#fff':'var(--accent)'};padding:1px 7px;border-radius:10px;background:${cat.color||'var(--accent-pale)'}">${escHtml(cat.name)}</span>`:''}
+      </div>` : ''}
+      ${_lnkExp ? `
+      <div onclick="event.stopPropagation();openDetail('${_lnkExp.id}')"
+        style="display:flex;align-items:center;gap:7px;margin-top:6px;padding:5px 8px;background:var(--accent-pale);border-radius:8px;cursor:pointer">
+        ${catIconHtml(_lnkExp.catId,13)}
+        <span style="font-size:11px;font-weight:600;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${_lnkExp.enseigne?escHtml(_lnkExp.enseigne):(getCatMap()[_lnkExp.catId]?.lbl||'Divers')} · ${formatDate(_lnkExp.date)}
+        </span>
+        <span style="font-size:11px;font-weight:700;font-family:var(--fm);color:var(--accent);flex-shrink:0">${fmtEur(expenseEur(_lnkExp),2)}</span>
       </div>` : ''}
     </div>
     <button onclick="todoEditId='${t.id}';renderTodo()"
@@ -325,6 +349,8 @@ function saveTodoEdit(id) {
   if (catEl) t.cat      = catEl.value || null;
   const notesEl = document.getElementById('tp-notes-'+id);
   if (notesEl) t.notes = notesEl.value.trim() || null;
+  const expEl = document.getElementById('tp-exp-'+id);
+  if (expEl) t.expenseId = expEl.value || null;
   todoEditId = null;
   save(); renderTodo();
 }
@@ -396,6 +422,71 @@ function saveTodoCat(id) {
   cat.color = colorEl ? colorEl.value : cat.color;
   todoEditCatId = null;
   save(); renderTodo();
+}
+
+// ── Lien Todo↔Dépense ────────────────────────────
+function filterTodoExpPicker(itemId) {
+  const q    = (document.getElementById('tp-exp-search-'+itemId)?.value||'').toLowerCase().trim();
+  const list = document.getElementById('tp-exp-list-'+itemId);
+  if (!list) return;
+  const catMap = getCatMap();
+  const matches = expenses
+    .filter(e => e.catId !== 'cash')
+    .filter(e => !q ||
+      (e.enseigne||'').toLowerCase().includes(q) ||
+      (e.desc||'').toLowerCase().includes(q) ||
+      (catMap[e.catId]?.lbl||'').toLowerCase().includes(q) ||
+      e.date.includes(q))
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .slice(0, 8);
+  if (!matches.length) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:6px 8px">Aucune dépense trouvée</div>`;
+    return;
+  }
+  list.innerHTML = matches.map(e => {
+    const lbl = e.enseigne ? escHtml(e.enseigne) : (catMap[e.catId]?.lbl||'Divers');
+    return `<div onclick="selectTodoExp('${itemId}','${e.id}')"
+      style="display:flex;align-items:center;justify-content:space-between;padding:7px 9px;background:var(--surface2);border-radius:8px;cursor:pointer;font-size:12px">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:600">${lbl} <span style="color:var(--text3);font-weight:400">· ${formatDate(e.date)}</span></span>
+      <span style="flex-shrink:0;font-weight:700;font-family:var(--fm);color:var(--text2);margin-left:8px">${fmtEur(expenseEur(e),2)}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectTodoExp(itemId, expId) {
+  const inp = document.getElementById('tp-exp-'+itemId);
+  if (inp) inp.value = expId;
+  const e = expenses.find(x => x.id === expId);
+  if (!e) return;
+  const catMap = getCatMap();
+  const lbl = e.enseigne ? escHtml(e.enseigne) : (catMap[e.catId]?.lbl||'Divers');
+  const display = document.getElementById('tp-exp-display-'+itemId);
+  const picker  = document.getElementById('tp-exp-picker-'+itemId);
+  if (display) {
+    display.style.display = 'flex';
+    display.innerHTML = `
+      <span style="flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${lbl} · ${formatDate(e.date)} · ${fmtEur(expenseEur(e),2)}
+      </span>
+      <button type="button" onclick="clearTodoExp('${itemId}')"
+        style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--text3);padding:2px">
+        ${icon('xmark',12,'var(--text3)')}
+      </button>`;
+  }
+  if (picker) picker.style.display = 'none';
+}
+
+function clearTodoExp(itemId) {
+  const inp = document.getElementById('tp-exp-'+itemId);
+  if (inp) inp.value = '';
+  const search = document.getElementById('tp-exp-search-'+itemId);
+  if (search) search.value = '';
+  const list = document.getElementById('tp-exp-list-'+itemId);
+  if (list) list.innerHTML = '';
+  const display = document.getElementById('tp-exp-display-'+itemId);
+  const picker  = document.getElementById('tp-exp-picker-'+itemId);
+  if (display) display.style.display = 'none';
+  if (picker)  picker.style.display  = 'block';
 }
 
 function deleteTodoCat(id) {

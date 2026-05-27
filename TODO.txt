@@ -71,10 +71,12 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → saveTodoEdit() lit tp-notes-{id}, stocke t.notes (null si vide)
     → affiché en gris sous le titre en vue normale (masqué si tâche cochée)
 
-[ ] Lier une tâche Todo à une dépense existante
+[x] Lier une tâche Todo à une dépense existante
     (ex. "vérifier ce reçu" → pointe vers la dépense)
-    → ajouter expenseId au modèle todo, picker de dépense dans le formulaire,
-       afficher la dépense liée en sous-ligne dans renderTodoItem()
+    → section "DÉPENSE LIÉE" dans le formulaire d'édition : champ caché tp-exp-{id},
+       picker recherche (filterTodoExpPicker) + selectTodoExp + clearTodoExp sans re-render
+    → affichage en vue normale : chip accent cliquable → openDetail(), stopPropagation
+    → saveTodoEdit lit tp-exp-{id}, stocke t.expenseId (null si vide)
 
 [x] Alertes budget : toast + indicateur visuel quand on dépasse 80% du budget
     d'une catégorie
