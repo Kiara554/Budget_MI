@@ -66,12 +66,15 @@ function gistPayload() {
     device: navigator.userAgent.slice(0, 60),
     settings: {
       rate:           settings.rate,
+      rateUSD:        settings.rateUSD,
       budgets:        settings.budgets,
       paymentMethods: settings.paymentMethods,
       catOverrides:   settings.catOverrides  || {},
       customCats:     settings.customCats    || [],
       todoCategories: settings.todoCategories|| [],
-      // githubPAT et githubGistId exclus volontairement (sensibles / propres à chaque appareil)
+      stageStart:     settings.stageStart    || '2026-05-01',
+      stageEnd:       settings.stageEnd      || '2026-08-31',
+      // githubPAT, githubGistId, syncPhotos, lastGistSync exclus (propres à chaque appareil)
     },
     pin: localStorage.getItem('mi_pin') || null,
     expenses,
