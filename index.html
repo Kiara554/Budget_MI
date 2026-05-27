@@ -12,7 +12,7 @@
 <title>MI Dépenses</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <!-- iPhone 15 / Dynamic Island splash -->
 <meta name="apple-touch-fullscreen" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -169,9 +169,10 @@
     <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5" rx="1"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
     <span>Remb.</span>
   </button>
-  <button class="nav-btn" data-view="todo" onclick="showView('todo')">
+  <button class="nav-btn" data-view="todo" onclick="showView('todo')" style="position:relative">
     <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     <span>Todo</span>
+    <span id="todo-badge" style="display:none;position:absolute;top:4px;right:10px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;font-weight:900;line-height:16px;text-align:center;padding:0 4px;box-sizing:border-box"></span>
   </button>
   <button class="nav-btn" data-view="settings" onclick="showView('settings')">
     <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -221,7 +222,6 @@
           <select class="form-select" id="f-currency">
             <option value="EUR">€ EUR</option>
             <option value="TND" selected>TND</option>
-            <option value="USD">$ USD</option>
           </select>
         </div>
       </div>

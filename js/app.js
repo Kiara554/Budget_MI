@@ -33,6 +33,7 @@ async function init() {
   await load();
   populateCatSelect();
   render();
+  updateTodoBadge();
   initLock();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {

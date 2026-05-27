@@ -60,6 +60,21 @@ function selectTodoPrio(formId, p) {
   });
 }
 
+function updateTodoBadge() {
+  const badge = document.getElementById('todo-badge');
+  if (!badge) return;
+  const today = new Date().toISOString().slice(0,10);
+  const count = todoItems.filter(t => !t.done && (
+    (t.dueDate && t.dueDate < today) || t.priority === 'high'
+  )).length;
+  if (count > 0) {
+    badge.textContent = count > 9 ? '9+' : count;
+    badge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function renderTodo() {
   const body = document.getElementById('todo-body');
   if (!body) return;
@@ -204,6 +219,7 @@ function renderTodo() {
     </div>
     <div style="height:16px"></div>
   `;
+  updateTodoBadge();
 }
 
 function renderTodoItem(t, cats) {
@@ -309,7 +325,7 @@ function saveTodoEdit(id) {
 function toggleTodo(id) {
   const t = todoItems.find(t=>t.id===id); if (!t) return;
   t.done = !t.done;
-  save(); renderTodo();
+  save(); renderTodo(); updateTodoBadge();
 }
 
 function deleteTodo(id) {

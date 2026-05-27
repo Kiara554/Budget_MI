@@ -422,13 +422,13 @@ async function fetchRate() {
     const resp = await fetch('https://open.er-api.com/v6/latest/EUR');
     if(!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    const rate = data.rates?.TND;
-    if(!rate) throw new Error('TND introuvable');
-    document.getElementById('s-rate').value = rate.toFixed(4);
-    if(info) info.textContent = `Taux en temps réel : 1 € = ${rate.toFixed(4)} TND`;
-    toast(`Taux récupéré : 1 € = ${rate.toFixed(4)} TND`);
+    const rateTND = data.rates?.TND;
+    if(!rateTND) throw new Error('TND introuvable');
+    document.getElementById('s-rate').value = rateTND.toFixed(4);
+    if(info) info.textContent = `Taux en temps réel : 1 € = ${rateTND.toFixed(4)} TND`;
+    toast(`Taux récupéré : 1 € = ${rateTND.toFixed(4)} TND`);
   } catch(e) {
-    toast('Impossible de récupérer le taux : ' + e.message);
+    toast('Impossible de récupérer les taux : ' + e.message);
     if(info) info.textContent = 'Erreur — vérifie ta connexion';
   } finally {
     if(btn) btn.textContent = '↻ Actuel';

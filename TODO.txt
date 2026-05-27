@@ -6,66 +6,114 @@ Légende : [ ] à faire  [~] en cours  [x] fait
 ── UX MOBILE ──────────────────────────────────────────────────────────────────
 
 [ ] Swipe entre les mois (navigation par geste)
+    → touchstart/touchend sur .view-body, delta X → même callback que les onglets
 
-[ ] Retour haptique sur les actions importantes (ajout, suppression, sync)
+[x] Retour haptique — supprimé
+    ✕ navigator.vibrate() non supporté sur iOS Safari ni sur Windows
+      → feature inutile sur les deux seules plateformes utilisées
 
-[ ] Badge compteur sur l'onglet nav Todo : point rouge ou chiffre si tâches
+[x] Badge compteur sur l'onglet nav Todo : point rouge ou chiffre si tâches
     en retard ou haute priorité non cochées
+    → ajouter un <span> dans le nav-btn Todo (index.html), mettre à jour
+       à la fin de chaque renderTodo() et toggleTodo()
 
-[ ] Widget "tâches urgentes" sur le dashboard : 2–3 items max (retard + haute
+[x] Widget "tâches urgentes" sur le dashboard : 2–3 items max (retard + haute
     priorité), lien direct vers la vue Todo
+    → _urgentTodos filtre todoItems (!done + overdue ou priority=high),
+       affiché sous le compte à rebours dans renderDash()
 
-[ ] Compte à rebours fin de stage affiché sur le dashboard
+[x] Compte à rebours fin de stage affiché sur le dashboard
     (ex. "il reste 47 jours — fin le 31 août")
+    → new Date('2026-08-31') - new Date(), déjà codé endStr = '2026-08-31'
 
 
 ── DONNÉES & CALCULS ──────────────────────────────────────────────────────────
 
-[ ] Taux de change TND éditable depuis les réglages (actuellement figé à 3.38)
-    → ou récupération automatique via une API de taux
+[x] Taux de change TND éditable depuis les réglages
+    → fetchRate() + saveRate() déjà implémentés, bouton "↻ Actuel" appelle
+       open.er-api.com — complètement fait
 
-[ ] Taux USD hardcodé (0.92 approximatif) — même traitement que TND
+[x] Taux USD hardcodé (0.92 dans helpers.js toEur())
+    → ajouter settings.rateUSD, lire data.rates.USD dans fetchRate() qui
+       utilise déjà open.er-api.com/v6/latest/EUR (même requête que TND)
 
-[ ] OPCO par mois : approximation per-expense vs per-category-total
-    → si 400€ en mai dans une catégorie plafonnée 300€, mai = 300€ mais
-       le surplus n'est pas compensé sur les autres mois
+[ ] OPCO par mois : bug de plafonnement
+    → monthlyOpco applique le plafond PAR MOIS indépendamment : si tu dépenses
+       200€ en mai + 200€ en juin pour une catégorie plafonnée 300€ stage,
+       il affiche 400€ OPCO alors que le max est 300€
+    → fix : distribuer le plafond global chronologiquement (mai d'abord,
+       épuiser le quota, les mois suivants héritent du solde restant)
 
 
 ── FONCTIONNALITÉS ────────────────────────────────────────────────────────────
 
-[ ] Recherche dans la liste des dépenses (par description, montant, catégorie)
-    → barre de recherche en haut de la vue Dépenses
+[x] Recherche dans la liste des dépenses
+    → barre de recherche DÉJÀ présente (index.html l.85–88)
+    → fix : étendre filteredExpenses() pour chercher aussi dans enseigne
+       et par montant (actuellement : desc + catégorie uniquement)
 
 [ ] Comparaison mois : sur le dashboard, afficher mois précédent vs mois actuel
     (delta dépenses, delta remboursable)
+    → uniquement quand filterMo !== 'all' et !== 'mai' (pas de mois précédent pour mai)
 
 [ ] Statistiques dépenses : jour de la semaine le plus dépensier, catégorie
-    la plus fréquente — accessible depuis le dashboard ou vue Dépenses
+    la plus fréquente — carte collapsible sur le dashboard
 
 [ ] Champ notes sur une tâche Todo (contexte court sous le titre, optionnel)
+    → ajouter notes au modèle todoItems, textarea dans le formulaire d'édition
 
 [ ] Lier une tâche Todo à une dépense existante
     (ex. "vérifier ce reçu" → pointe vers la dépense)
+    → ajouter expenseId au modèle todo, picker de dépense dans le formulaire,
+       afficher la dépense liée en sous-ligne dans renderTodoItem()
 
-[ ] Alertes budget : notification / indicateur visuel quand on approche
-    du plafond d'une catégorie (ex. : 80% atteint)
+[ ] Alertes budget : toast + indicateur visuel quand on dépasse 80% du budget
+    d'une catégorie
+    → déclencher dans submitExpense() si la catégorie franchit 80%
+    → bandeau d'avertissement sur le dashboard (pas de push notification,
+       trop complexe sans backend)
 
-[ ] Récurrence automatique : appliquer un modèle à date fixe sans action manuelle
+[ ] Récurrence : rappel Todo lié à un modèle (pas de création automatique)
+    ⚠ "Sans action manuelle" = risque de doublons silencieux si l'app
+       s'ouvre plusieurs fois le même jour
+    → approche retenue : ajouter recurringDay sur les templates, créer une
+       tâche Todo de rappel ("⚡ Loyer à payer — appuie pour appliquer le modèle")
+       plutôt qu'une dépense automatique
 
-[ ] Export PDF dossier OPCO complet (justificatifs + tableau récap)
-    → actuellement : CSV + téléchargement photos séparés
+[ ] Export PDF dossier OPCO (justificatifs + tableau récap)
+    ⚠ Pas de bibliothèque jsPDF — trop lourd pour une appli vanilla
+    → générer une vue HTML dédiée + appeler window.print() avec CSS print,
+       même pattern que l'export Excel existant (HTML → Blob)
+    → actuellement : Excel + ZIP photos séparés
 
 [ ] Graphique évolution solde net (dépenses − gains) dans le temps
+    → réutiliser le code SVG du graphique courbe existant (render-dashboard.js),
+       ajouter les gains cumulés en deuxième courbe
 
 
 ── TECHNIQUE ──────────────────────────────────────────────────────────────────
 
-[ ] Sync Gist : inclure les photos IndexedDB dans la sauvegarde cloud
-    → actuellement les justificatifs sont perdus si on change d'appareil
+[ ] Sync Gist : inclure les photos dans la sauvegarde cloud
+    ⚠ Photos en base64 = 5–15 Mo pour 30–50 photos, proche des limites Gist
+    → approche : second fichier Gist "mi-photos.json" séparé du JSON principal
+    → si trop lourd : documenter l'export JSON local complet (déjà présent)
+       comme procédure de sauvegarde photos entre appareils
 
-[ ] Gestion de conflit Gist : si modif sur deux appareils simultanément,
-    pas de résolution → risque de perte de données
+[ ] Gestion de conflit Gist : si modif sur deux appareils simultanément
+    ⚠ Vrai merge 3-way hors scope pour une appli vanilla JS solo
+    → approche retenue : comparer les savedAt timestamps, si le Gist est plus
+       récent que la dernière sync connue → dialog "Garder local / Charger Gist"
+       avec date et nb de dépenses de chaque version
 
-[ ] Cash : vérifier qu'on a le total en suivi à un endroit
+[x] Cash : suivi total déjà en place
+    → render-cash.js affiche Retiré / Dépensé / Restant en EUR et TND
 
-[ ] index.html ~3600 lignes : envisager découpage en modules JS séparés
+[x] index.html découpage en modules JS
+    → déjà fait : tout le JS est dans js/ (16 fichiers)
+    → les ~3600 lignes restantes dans index.html sont du HTML/CSS, pas de logique
+
+
+── PRIORITÉ ───────────────────────────────────────────────────────────────────
+
+[x] Calcul budget par mois dans "Budget total stage" : se met à jour en live
+    quand on modifie les budgets (updateBudgetLive)

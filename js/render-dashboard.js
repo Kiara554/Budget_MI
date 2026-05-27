@@ -133,7 +133,66 @@ function renderDash() {
   const pctColor = pctUsed < 70 ? 'var(--green)' : pctUsed < 90 ? 'var(--orange)' : 'var(--red)';
 
   const body = document.getElementById('dash-body');
+  // Compte à rebours fin de stage
+  const _today    = new Date(); _today.setHours(0,0,0,0);
+  const _stageEnd = new Date('2026-08-31'); _stageEnd.setHours(0,0,0,0);
+  const _stageStart = new Date('2026-05-01'); _stageStart.setHours(0,0,0,0);
+  const _daysLeft = Math.ceil((_stageEnd - _today) / 86400000);
+  const _stageStarted = _today >= _stageStart;
+  const _stageOver    = _today > _stageEnd;
+  const _countdownHtml = (() => {
+    if (_stageOver)   return `<div style="text-align:center;font-size:13px;color:var(--text3);padding:10px 0">🎓 Stage terminé</div>`;
+    if (!_stageStarted) {
+      const d = Math.ceil((_stageStart - _today) / 86400000);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--accent-pale);border-radius:14px;padding:10px 14px;margin-bottom:4px">
+        <span style="font-size:13px;font-weight:700;color:var(--accent)">🗓 Départ dans ${d} jour${d>1?'s':''}</span>
+        <span style="font-size:12px;color:var(--text3)">1er mai 2026</span>
+      </div>`;
+    }
+    const col = _daysLeft <= 14 ? 'var(--orange)' : _daysLeft <= 7 ? 'var(--red)' : 'var(--accent)';
+    const bg  = _daysLeft <= 14 ? 'var(--orange-pale)' : _daysLeft <= 7 ? 'var(--red-pale)' : 'var(--accent-pale)';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;background:${bg};border-radius:14px;padding:10px 14px;margin-bottom:4px">
+      <span style="font-size:13px;font-weight:700;color:${col}">⏳ Il reste <strong>${_daysLeft}</strong> jour${_daysLeft>1?'s':''}</span>
+      <span style="font-size:12px;color:var(--text3)">Fin le 31 août</span>
+    </div>`;
+  })();
+
+  // Widget tâches urgentes
+  const _todayStr   = new Date().toISOString().slice(0,10);
+  const _urgentTodos = todoItems.filter(t => !t.done && (
+    (t.dueDate && t.dueDate < _todayStr) || t.priority === 'high'
+  )).sort((a, b) => {
+    const aOv = a.dueDate && a.dueDate < _todayStr;
+    const bOv = b.dueDate && b.dueDate < _todayStr;
+    if (aOv && !bOv) return -1;
+    if (!aOv && bOv) return 1;
+    if (aOv && bOv) return a.dueDate.localeCompare(b.dueDate);
+    return 0;
+  });
+  const _urgentWidget = _urgentTodos.length === 0 ? '' : `
+    <div style="background:var(--surface);border-radius:16px;padding:11px 13px;margin-bottom:4px;box-shadow:var(--shadow);border-left:3px solid var(--red)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:800;color:var(--red);letter-spacing:.4px">⚠ TÂCHES URGENTES</span>
+        <button onclick="showView('todo')" style="font-size:11px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">Voir tout →</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${_urgentTodos.slice(0,3).map(t => {
+          const isOverdue = t.dueDate && t.dueDate < _todayStr;
+          const badge = isOverdue
+            ? `<span style="font-size:10px;font-weight:700;color:var(--red);padding:1px 6px;border-radius:8px;background:var(--red-pale);white-space:nowrap;flex-shrink:0">📅 Retard</span>`
+            : `<span style="font-size:10px;font-weight:700;color:#f07090;padding:1px 6px;border-radius:8px;background:#ffe8f0;white-space:nowrap;flex-shrink:0">● Haute</span>`;
+          return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--surface2);border-radius:10px;cursor:pointer" onclick="showView('todo')">
+            ${badge}
+            <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.text)}</span>
+          </div>`;
+        }).join('')}
+        ${_urgentTodos.length > 3 ? `<div style="font-size:11px;color:var(--text3);text-align:center;padding-top:2px">+${_urgentTodos.length - 3} autre${_urgentTodos.length - 3 > 1 ? 's' : ''} tâche${_urgentTodos.length - 3 > 1 ? 's' : ''} urgente${_urgentTodos.length - 3 > 1 ? 's' : ''}</div>` : ''}
+      </div>
+    </div>`;
+
   body.innerHTML = `
+  ${_countdownHtml}
+  ${_urgentWidget}
   <!-- Top stats — wrapper pour desktop 3×2 -->
   <div class="stat-group" style="margin-top:12px">
     <div class="stat-grid">

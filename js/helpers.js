@@ -21,7 +21,7 @@ function pct(a,b) { return b>0 ? Math.min((a/b)*100,100) : 0; }
 function toEur(amount, currency) {
   if(currency==='EUR') return amount;
   if(currency==='TND') return amount / settings.rate;
-  if(currency==='USD') return amount * 0.92; // approximate
+  if(currency==='USD') return amount * 0.92;
   return amount;
 }
 function toTnd(amount, currency) {
@@ -122,9 +122,13 @@ function filteredExpenses() {
     }
     if(catFilter !== 'all' && e.catId !== catFilter) return false;
     if(search) {
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().replace(',','.');
+      const amtMatch = !isNaN(parseFloat(q)) &&
+        (expenseEur(e).toFixed(2).includes(q) || String(e.amount).replace(',','.').includes(q));
       if(!(e.desc||'').toLowerCase().includes(q) &&
-         !(getCatMap()[e.catId]?.lbl||'').toLowerCase().includes(q)) return false;
+         !(e.enseigne||'').toLowerCase().includes(q) &&
+         !(getCatMap()[e.catId]?.lbl||'').toLowerCase().includes(q) &&
+         !amtMatch) return false;
     }
     return true;
   });
