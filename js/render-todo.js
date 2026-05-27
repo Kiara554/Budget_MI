@@ -308,6 +308,13 @@ function renderTodoItem(t, cats) {
         ${due?`<span style="font-size:11px;font-weight:700;color:${due.col};padding:1px 7px;border-radius:10px;background:${due.bg}">📅 ${due.label}</span>`:''}
         ${cat?`<span style="font-size:11px;font-weight:700;color:${cat.color?'#fff':'var(--accent)'};padding:1px 7px;border-radius:10px;background:${cat.color||'var(--accent-pale)'}">${escHtml(cat.name)}</span>`:''}
       </div>` : ''}
+      ${t.reminderId && !t.done ? `
+      <div style="margin-top:6px">
+        <button onclick="event.stopPropagation();applyTemplateFromTodo('${t.reminderId}','${t.id}')"
+          style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent-pale);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer">
+          ${icon('refresh',12,'var(--accent)')} Appliquer le modèle
+        </button>
+      </div>` : ''}
       ${_lnkExp ? `
       <div onclick="event.stopPropagation();openDetail('${_lnkExp.id}')"
         style="display:flex;align-items:center;gap:7px;margin-top:6px;padding:5px 8px;background:var(--accent-pale);border-radius:8px;cursor:pointer">

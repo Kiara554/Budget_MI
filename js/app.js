@@ -61,6 +61,32 @@ function initSwipe() {
 }
 
 // ══════════════════════════════════════════════
+//  RÉCURRENCE — rappels Todo liés aux modèles
+// ══════════════════════════════════════════════
+function checkRecurringReminders() {
+  const now      = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const todayDay = now.getDate();
+  let created    = 0;
+  templates.forEach(t => {
+    if (t.recurringDay == null || t.recurringDay !== todayDay) return;
+    // Ne pas créer si un rappel existe déjà pour aujourd'hui pour ce modèle
+    const exists = todoItems.some(item =>
+      item.reminderId === t.id && (item.createdAt||'').startsWith(todayStr)
+    );
+    if (exists) return;
+    todoItems.unshift({
+      id: uid(), text: `${t.name} — appliquer le modèle`,
+      done: false, cat: null, priority: 'medium',
+      dueDate: todayStr, createdAt: now.toISOString(),
+      reminderId: t.id,
+    });
+    created++;
+  });
+  if (created > 0) { save(); }
+}
+
+// ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
 async function init() {
@@ -68,6 +94,7 @@ async function init() {
   if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
   await load();
   populateCatSelect();
+  checkRecurringReminders();
   render();
   updateTodoBadge();
   initLock();

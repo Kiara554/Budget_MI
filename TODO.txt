@@ -84,12 +84,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
        (détecte le crossing avant/après, uniquement sur nouvelles dépenses)
     → icône ⚠️ / 🚨 sur le montant de chaque barre de catégorie dans le dashboard
 
-[ ] Récurrence : rappel Todo lié à un modèle (pas de création automatique)
-    ⚠ "Sans action manuelle" = risque de doublons silencieux si l'app
-       s'ouvre plusieurs fois le même jour
-    → approche retenue : ajouter recurringDay sur les templates, créer une
-       tâche Todo de rappel ("⚡ Loyer à payer — appuie pour appliquer le modèle")
-       plutôt qu'une dépense automatique
+[x] Récurrence : rappel Todo lié à un modèle (pas de création automatique)
+    → recurringDay (1–28) sur les templates, éditable via icône ↻ sur chaque chip
+    → checkRecurringReminders() dans init() : crée un todo priority=medium, dueDate=today
+       si recurringDay === today.getDate() et aucun rappel déjà créé aujourd'hui (reminderId)
+    → bouton "Appliquer le modèle" sur les todos reminderId → ouvre modal + applique template + coche todo
 
 [ ] Export PDF dossier OPCO (justificatifs + tableau récap)
     ⚠ Pas de bibliothèque jsPDF — trop lourd pour une appli vanilla

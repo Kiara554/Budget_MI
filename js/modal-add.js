@@ -61,10 +61,18 @@ function renderTemplateChips() {
   }
   el.innerHTML = templates.map(t => {
     const cat = getCats().find(c => c.id === t.catId);
-    return `<button class="tpl-chip" onclick="applyTemplate('${t.id}')">
-      ${icon(cat?.ic||'divers', 14)} ${escHtml(t.name)}
-      <span class="tpl-chip-del" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</span>
-    </button>`;
+    const hasDay = t.recurringDay != null;
+    return `<span style="display:inline-flex;align-items:center;gap:1px;margin:2px 2px 2px 0">
+      <button class="tpl-chip" style="border-radius:${hasDay?'20px 0 0 20px':'20px'};margin:0" onclick="applyTemplate('${t.id}')">
+        ${icon(cat?.ic||'divers', 14)} ${escHtml(t.name)}
+        ${hasDay?`<span style="font-size:10px;font-weight:800;color:var(--accent);margin-left:3px;opacity:.85">J${t.recurringDay}</span>`:''}
+        <span class="tpl-chip-del" onclick="event.stopPropagation();deleteTemplate('${t.id}')">✕</span>
+      </button>
+      <button onclick="setTplRecurring('${t.id}')" title="Rappel récurrent"
+        style="padding:4px 6px;border-radius:0 20px 20px 0;border:1.5px solid var(--border);border-left:none;background:${hasDay?'var(--accent-pale)':'var(--surface2)'};cursor:pointer;display:flex;align-items:center">
+        ${icon('refresh', 11, hasDay?'var(--accent)':'var(--text3)')}
+      </button>
+    </span>`;
   }).join('');
 }
 
@@ -108,6 +116,26 @@ function deleteTemplate(id) {
   templates = templates.filter(t => t.id !== id);
   save();
   renderTemplateChips();
+}
+
+function applyTemplateFromTodo(templateId, todoId) {
+  openAddModal();
+  applyTemplate(templateId);
+  // Marquer le todo comme terminé après application
+  const t = todoItems.find(x => x.id === todoId);
+  if (t) { t.done = true; save(); updateTodoBadge(); }
+}
+
+function setTplRecurring(id) {
+  const t = templates.find(x => x.id === id); if (!t) return;
+  const cur = t.recurringDay != null ? String(t.recurringDay) : '';
+  const val = prompt(`Jour du mois pour le rappel Todo (1–28)\nLaisser vide pour désactiver.\nModèle : "${t.name}"`, cur);
+  if (val === null) return;
+  const day = parseInt(val.trim());
+  t.recurringDay = (!val.trim() || isNaN(day) || day < 1 || day > 28) ? null : day;
+  save();
+  renderTemplateChips();
+  toast(t.recurringDay ? `Rappel le ${t.recurringDay} de chaque mois` : 'Rappel désactivé');
 }
 
 function openEdit(id) {
