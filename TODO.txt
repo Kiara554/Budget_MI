@@ -67,11 +67,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → ajouter expenseId au modèle todo, picker de dépense dans le formulaire,
        afficher la dépense liée en sous-ligne dans renderTodoItem()
 
-[ ] Alertes budget : toast + indicateur visuel quand on dépasse 80% du budget
+[x] Alertes budget : toast + indicateur visuel quand on dépasse 80% du budget
     d'une catégorie
-    → déclencher dans submitExpense() si la catégorie franchit 80%
-    → bandeau d'avertissement sur le dashboard (pas de push notification,
-       trop complexe sans backend)
+    → toast décalé 400ms après "Dépense ajoutée !" si franchissement 80% ou 100%
+       (détecte le crossing avant/après, uniquement sur nouvelles dépenses)
+    → icône ⚠️ / 🚨 sur le montant de chaque barre de catégorie dans le dashboard
 
 [ ] Récurrence : rappel Todo lié à un modèle (pas de création automatique)
     ⚠ "Sans action manuelle" = risque de doublons silencieux si l'app

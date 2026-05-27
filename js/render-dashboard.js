@@ -141,18 +141,18 @@ function renderDash() {
   const _stageStarted = _today >= _stageStart;
   const _stageOver    = _today > _stageEnd;
   const _countdownHtml = (() => {
-    if (_stageOver)   return `<div style="text-align:center;font-size:13px;color:var(--text3);padding:10px 0">🎓 Stage terminé</div>`;
+    if (_stageOver)   return `<div style="display:flex;align-items:center;gap:6px;justify-content:center;font-size:13px;color:var(--text3);padding:10px 0">${icon('check',14,'var(--green)')} Stage terminé</div>`;
     if (!_stageStarted) {
       const d = Math.ceil((_stageStart - _today) / 86400000);
       return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--accent-pale);border-radius:14px;padding:10px 14px;margin-bottom:4px">
-        <span style="font-size:13px;font-weight:700;color:var(--accent)">🗓 Départ dans ${d} jour${d>1?'s':''}</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--accent)">${icon('calendar',14,'var(--accent)')} Départ dans ${d} jour${d>1?'s':''}</span>
         <span style="font-size:12px;color:var(--text3)">1er mai 2026</span>
       </div>`;
     }
-    const col = _daysLeft <= 14 ? 'var(--orange)' : _daysLeft <= 7 ? 'var(--red)' : 'var(--accent)';
-    const bg  = _daysLeft <= 14 ? 'var(--orange-pale)' : _daysLeft <= 7 ? 'var(--red-pale)' : 'var(--accent-pale)';
+    const col = _daysLeft <= 7 ? 'var(--red)' : _daysLeft <= 14 ? 'var(--orange)' : 'var(--accent)';
+    const bg  = _daysLeft <= 7 ? 'var(--red-pale)' : _daysLeft <= 14 ? 'var(--orange-pale)' : 'var(--accent-pale)';
     return `<div style="display:flex;align-items:center;justify-content:space-between;background:${bg};border-radius:14px;padding:10px 14px;margin-bottom:4px">
-      <span style="font-size:13px;font-weight:700;color:${col}">⏳ Il reste <strong>${_daysLeft}</strong> jour${_daysLeft>1?'s':''}</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:${col}">${icon('clock',14,col)} Il reste <strong>${_daysLeft}</strong> jour${_daysLeft>1?'s':''}</span>
       <span style="font-size:12px;color:var(--text3)">Fin le 31 août</span>
     </div>`;
   })();
@@ -172,15 +172,15 @@ function renderDash() {
   const _urgentWidget = _urgentTodos.length === 0 ? '' : `
     <div style="background:var(--surface);border-radius:16px;padding:11px 13px;margin-bottom:4px;box-shadow:var(--shadow);border-left:3px solid var(--red)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:12px;font-weight:800;color:var(--red);letter-spacing:.4px">⚠ TÂCHES URGENTES</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--red);letter-spacing:.4px">${icon('alert-tri',13,'var(--red)')} TÂCHES URGENTES</span>
         <button onclick="showView('todo')" style="font-size:11px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;padding:0">Voir tout →</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px">
         ${_urgentTodos.slice(0,3).map(t => {
           const isOverdue = t.dueDate && t.dueDate < _todayStr;
           const badge = isOverdue
-            ? `<span style="font-size:10px;font-weight:700;color:var(--red);padding:1px 6px;border-radius:8px;background:var(--red-pale);white-space:nowrap;flex-shrink:0">📅 Retard</span>`
-            : `<span style="font-size:10px;font-weight:700;color:#f07090;padding:1px 6px;border-radius:8px;background:#ffe8f0;white-space:nowrap;flex-shrink:0">● Haute</span>`;
+            ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--red);padding:1px 6px;border-radius:8px;background:var(--red-pale);white-space:nowrap;flex-shrink:0">${icon('calendar',10,'var(--red)')} Retard</span>`
+            : `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#f07090;padding:1px 6px;border-radius:8px;background:#ffe8f0;white-space:nowrap;flex-shrink:0">${icon('alert-tri',10,'#f07090')} Haute</span>`;
           return `<div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:var(--surface2);border-radius:10px;cursor:pointer" onclick="showView('todo')">
             ${badge}
             <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.text)}</span>
@@ -279,7 +279,7 @@ function renderDash() {
           <span class="prog-label">
             <span style="background:${col.bg};color:${col.text};padding:2px 8px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;gap:5px">${icon(c.ic||'divers',13,col.text)} ${c.lbl}</span>
           </span>
-          <span class="prog-amount">${dashFmt(spent,0)}${budget>0?' / '+dashFmt(budget,0):''}</span>
+          <span class="prog-amount" style="display:flex;align-items:center;gap:4px">${p>=100?icon('alert-tri',12,'var(--red)'):p>=80?icon('alert-tri',12,'var(--orange)'):''}${dashFmt(spent,0)}${budget>0?' / '+dashFmt(budget,0):''}</span>
         </div>
         ${budget>0 ? (()=>{
           const max   = Math.max(spent, budget);

@@ -168,6 +168,28 @@ function submitAdd() {
     const moIdx = MONTH_DATES.indexOf(ym);
     expenses.push({ id:uid(), date, catId, enseigne, desc, amount, currency, bankFee, payment, remb, recu, recuName, photo: photoData, extraPhotos: extraPhotosToSave, month: moIdx>=0?MONTHS[moIdx]:null, createdAt: new Date().toISOString() });
     toast('Dépense ajoutée !');
+    // ── Alerte budget (franchissement 80% ou 100%) ──
+    (function _checkBudgetAlert() {
+      const _cat = getCatMap()[catId];
+      if (!_cat || _cat.type === 'exclu' || catId === 'cash') return;
+      const _budget = getBudget(catId);
+      if (!_budget || _budget <= 0) return;
+      const _expMonth  = getMonth({ date });
+      const _isPrepa   = _cat.type === 'prepa';
+      const _spent     = expenses
+        .filter(e => e.catId === catId && (_isPrepa || getMonth(e) === _expMonth))
+        .reduce((s, e) => s + expenseEur(e), 0);
+      const _newEur    = toEur(amount, currency) + bankFee;
+      const _prevSpent = _spent - _newEur;
+      const _pctNow    = (_spent    / _budget) * 100;
+      const _pctPrev   = (_prevSpent / _budget) * 100;
+      let _msg = null;
+      if (_pctNow >= 100 && _pctPrev < 100)
+        _msg = `Budget ${_cat.lbl} dépassé ! (${_pctNow.toFixed(0)}%)`;
+      else if (_pctNow >= 80 && _pctPrev < 80)
+        _msg = `Alerte : ${_cat.lbl} — 80% du budget atteint`;
+      if (_msg) setTimeout(() => toast(_msg), 400);
+    })();
   }
   extraPhotoDatas.forEach(p => {
     if (p.data) savePhotoIDB(p.id, p.data).catch(console.warn);
