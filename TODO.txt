@@ -54,9 +54,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → fix : étendre filteredExpenses() pour chercher aussi dans enseigne
        et par montant (actuellement : desc + catégorie uniquement)
 
-[ ] Comparaison mois : sur le dashboard, afficher mois précédent vs mois actuel
+[x] Comparaison mois : sur le dashboard, afficher mois précédent vs mois actuel
     (delta dépenses, delta remboursable)
-    → uniquement quand filterMo !== 'all' et !== 'mai' (pas de mois précédent pour mai)
+    → carte "vs Juin/Juil/..." insérée entre stat-group et barre budget
+    → _prevMoIdx = MONTHS.indexOf(filterMo) - 1, calcul _deltaDep / _deltaRemb
+    → visible uniquement pour juin / juil / août (pas all, pas mai)
 
 [ ] Statistiques dépenses : jour de la semaine le plus dépensier, catégorie
     la plus fréquente — carte collapsible sur le dashboard

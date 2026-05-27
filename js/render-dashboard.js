@@ -39,6 +39,17 @@ function renderDash() {
   const reste     = budgetRef - totalEur;
   const pctUsed   = pct(totalEur, budgetRef);
 
+  // Comparaison mois précédent (disponible pour juin / juil / août)
+  const _prevMoIdx = (filterMo !== 'all' && filterMo !== 'mai') ? MONTHS.indexOf(filterMo) - 1 : -1;
+  const _prevMoYm  = _prevMoIdx >= 0 ? MONTH_DATES[_prevMoIdx] : null;
+  const _prevSpend = _prevMoYm ? allExp.filter(e => getMonth(e) === _prevMoYm && e.catId !== 'cash') : [];
+  const _prevTotal = _prevSpend.reduce((s,e) => s + expenseEur(e), 0);
+  const _prevRemb  = _prevSpend.filter(e => e.remb).reduce((s,e) => s + expenseEur(e), 0);
+  const _prevNb    = _prevSpend.length;
+  const _deltaDep  = totalEur  - _prevTotal;
+  const _deltaRemb = totalRemb - _prevRemb;
+  const _fmtDelta  = v => (v > 0 ? '+' : '') + dashFmt(v, 0);
+
   // Per-category stats
   const catStats = getCats().filter(c => {
     if (c.id === 'cash') return false;
@@ -232,6 +243,40 @@ function renderDash() {
       </div>
     </div>
   </div>
+
+  <!-- Comparaison mois précédent -->
+  ${_prevMoYm ? `
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-title" style="margin:0">vs ${MONTH_LABELS[_prevMoIdx]}</div>
+      <span style="font-size:11px;color:var(--text3);font-weight:700">${MONTH_LABELS[MONTHS.indexOf(filterMo)]}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">DÉPENSÉ</div>
+        <div style="font-size:16px;font-weight:800;font-family:var(--fm)">${dashFmt(totalEur,0)}</div>
+        <div style="display:flex;align-items:center;gap:3px;margin-top:4px">
+          ${_deltaDep!==0?icon(_deltaDep>0?'alert-tri':'check',11,_deltaDep>0?'var(--red)':'var(--green)'):''}
+          <span style="font-size:12px;font-weight:700;color:${_deltaDep>0?'var(--red)':_deltaDep<0?'var(--green)':'var(--text3)'}">
+            ${_deltaDep===0?'—':_fmtDelta(_deltaDep)}
+          </span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:4px">REMBOURSABLE</div>
+        <div style="font-size:16px;font-weight:800;font-family:var(--fm)">${dashFmt(totalRemb,0)}</div>
+        <div style="display:flex;align-items:center;gap:3px;margin-top:4px">
+          ${_deltaRemb!==0?icon(_deltaRemb<0?'alert-tri':'check',11,_deltaRemb<0?'var(--orange)':'var(--green)'):''}
+          <span style="font-size:12px;font-weight:700;color:${_deltaRemb>0?'var(--green)':_deltaRemb<0?'var(--orange)':'var(--text3)'}">
+            ${_deltaRemb===0?'—':_fmtDelta(_deltaRemb)}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+      ${nbDep} dépense${nbDep!==1?'s':''} ce mois · ${_prevNb} en ${MONTH_LABELS[_prevMoIdx]}
+    </div>
+  </div>` : ''}
 
   <!-- Budget progress bar -->
   <div class="card">
