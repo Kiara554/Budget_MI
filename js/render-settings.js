@@ -575,10 +575,24 @@ function importData(ev) {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if(data.expenses) expenses = data.expenses;
-      if(data.settings) settings = Object.assign({rate:3.38,budgets:{}}, data.settings);
+      if (data.expenses)    expenses    = data.expenses;
+      if (data.withdrawals) withdrawals = data.withdrawals;
+      if (data.gains)       gains       = data.gains;
+      if (data.templates)   templates   = data.templates;
+      if (data.todoItems)   todoItems   = data.todoItems;
+      if (data.pin)         localStorage.setItem('mi_pin', data.pin);
+      if (data.settings) {
+        // Préserver les identifiants propres à l'appareil — absents du backup Gist
+        const _keep = {
+          githubPAT:    settings.githubPAT,
+          githubGistId: settings.githubGistId,
+          syncPhotos:   settings.syncPhotos,
+          lastGistSync: settings.lastGistSync,
+        };
+        settings = Object.assign({ rate: 3.38, budgets: {} }, data.settings, _keep);
+      }
       save(); render();
-      toast('Import réussi : '+expenses.length+' dépenses');
+      toast('Import réussi : ' + expenses.length + ' dépense' + (expenses.length !== 1 ? 's' : ''));
     } catch(err) { toast('Fichier invalide'); }
   };
   reader.readAsText(f);
