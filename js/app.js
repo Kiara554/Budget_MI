@@ -25,6 +25,42 @@ async function forceUpdate() {
 }
 
 // ══════════════════════════════════════════════
+//  SWIPE NAVIGATION (mobile)
+// ══════════════════════════════════════════════
+function navigateMonth(dir) {
+  const allMos = ['all', ...MONTHS];
+  let cur;
+  if      (curView === 'remb') cur = rembMo;
+  else if (curView === 'cash') cur = cashMo;
+  else                         cur = filterMo;
+  const idx = allMos.indexOf(cur);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= allMos.length) return;
+  const newMo = allMos[newIdx];
+  if      (curView === 'remb') rembMo   = newMo;
+  else if (curView === 'cash') cashMo   = newMo;
+  else                         filterMo = newMo;
+  render();
+}
+
+function initSwipe() {
+  let _sx = 0, _sy = 0;
+  document.addEventListener('touchstart', e => {
+    _sx = e.touches[0].clientX;
+    _sy = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - _sx;
+    const dy = e.changedTouches[0].clientY - _sy;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return; // trop petit ou vertical
+    if (document.body.style.overflow === 'hidden') return; // modal ouvert
+    if (!['dashboard', 'list', 'remb', 'cash'].includes(curView)) return;
+    navigateMonth(dx < 0 ? 1 : -1); // gauche → mois suivant, droite → mois précédent
+  }, { passive: true });
+}
+
+// ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
 async function init() {
@@ -35,6 +71,7 @@ async function init() {
   render();
   updateTodoBadge();
   initLock();
+  initSwipe();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       reg.addEventListener('updatefound', () => {

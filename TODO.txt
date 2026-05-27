@@ -5,8 +5,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
 
 ── UX MOBILE ──────────────────────────────────────────────────────────────────
 
-[ ] Swipe entre les mois (navigation par geste)
-    → touchstart/touchend sur .view-body, delta X → même callback que les onglets
+[x] Swipe entre les mois (navigation par geste)
+    → initSwipe() dans app.js : touchstart/touchend sur document
+    → |dx| > 60px ET |dx| > |dy| (horizontal) ET pas de modal ouvert
+    → navigateMonth(±1) met à jour filterMo / rembMo / cashMo selon curView
+    → fonctionne sur : dashboard, list, remb, cash
 
 [x] Retour haptique — supprimé
     ✕ navigator.vibrate() non supporté sur iOS Safari ni sur Windows
