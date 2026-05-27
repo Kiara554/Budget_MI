@@ -158,18 +158,18 @@ function renderSettings() {
     <div class="stat-grid" style="margin-bottom:10px">
       <div class="stat-card accent-bg">
         <div class="stat-label">Budget Mai</div>
-        <div class="stat-value mono">${fmtEur(computeBudgetPrepa(),0)}</div>
+        <div class="stat-value mono" id="bgt-live-prepa">${fmtEur(computeBudgetPrepa(),0)}</div>
         <div class="stat-small">Transport + Achats prépa</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Mensuel (×3)</div>
-        <div class="stat-value mono">${fmtEur(computeBudgetMensuel(),0)}</div>
+        <div class="stat-value mono" id="bgt-live-mensuel">${fmtEur(computeBudgetMensuel(),0)}</div>
         <div class="stat-small">Juin · Juillet · Août</div>
       </div>
     </div>
     <div class="stat-card green-bg" style="margin-bottom:0">
       <div class="stat-label">Budget total stage</div>
-      <div class="stat-value mono" style="font-size:24px">${fmtEur(computeBudgetTotal(),0)}</div>
+      <div class="stat-value mono" id="bgt-live-total" style="font-size:24px">${fmtEur(computeBudgetTotal(),0)}</div>
     </div>
   </div>`;
 
@@ -208,19 +208,26 @@ function renderSettings() {
               <td style="padding:6px 10px;border:none;background:none">
                 <span style="background:${col.bg};color:${col.text};padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px">${icon(c.ic||'divers',11,col.text)} ${c.lbl}</span>
               </td>
-              <td style="border:none;background:none;text-align:right"><input class="budget-input" type="number" min="0" id="b-budget-${c.id}" value="${b}" placeholder="—"></td>
+              <td style="border:none;background:none;text-align:right"><input class="budget-input" type="number" min="0" id="b-budget-${c.id}" value="${b}" placeholder="—" oninput="updateBudgetLive()"></td>
               <td style="border:none;background:none;text-align:right"><input class="budget-input" type="number" min="0" id="b-plafond-${c.id}" value="${p!==null?p:''}" placeholder="—"></td>
             </tr>`;
           }).join('')}
         </tbody>
         <tfoot><tr>
           <td style="padding:6px 10px;font-size:12px;font-weight:900;border:none;background:none">Total</td>
-          <td style="border:none;background:none;text-align:right;font-size:12px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0)}</td>
+          <td id="bgt-tfoot-budget" style="border:none;background:none;text-align:right;font-size:12px;font-weight:900;font-family:var(--fm);color:var(--accent)">${fmtEur(getCats().reduce((s,c)=>s+getBudget(c.id),0),0)}</td>
           <td style="border:none;background:none;text-align:right;font-size:12px;font-weight:900;font-family:var(--fm);color:var(--green)">${fmtEur(getCats().reduce((s,c)=>{const p=getPlafond(c.id);return s+(p||0);},0),0)} <span style="font-size:10px;color:var(--text3)">/ ${fmtEur(OPCO_GLOBAL_MAX,0)}</span></td>
         </tr></tfoot>
       </table>
     </div>
-    <div style="padding:8px 10px 2px;display:flex;gap:8px">
+    <div id="bgt-live-bar" style="display:flex;gap:6px;align-items:center;padding:6px 10px 2px;font-size:12px;color:var(--text3)">
+      <span>Mai <b id="bgt-bar-prepa" style="color:var(--accent);font-family:var(--fm)">${fmtEur(computeBudgetPrepa(),0)}</b></span>
+      <span style="opacity:.4">·</span>
+      <span>Mensuel <b id="bgt-bar-mensuel" style="color:var(--text2);font-family:var(--fm)">${fmtEur(computeBudgetMensuel(),0)}</b>/mois</span>
+      <span style="opacity:.4">·</span>
+      <span>🎯 <b id="bgt-bar-total" style="color:var(--green);font-family:var(--fm)">${fmtEur(computeBudgetTotal(),0)}</b> total</span>
+    </div>
+    <div style="padding:4px 10px 2px;display:flex;gap:8px">
       <button class="btn btn-accent" onclick="saveBudgets()" style="min-height:40px">💾 Sauvegarder</button>
       <button class="btn btn-outline" onclick="resetBudgets()" style="min-height:40px">↩ Défaut</button>
     </div>
@@ -434,6 +441,28 @@ function saveRate() {
   settings.rate = v;
   save();
   toast('Taux sauvegardé : 1€ = '+v+' TND');
+}
+
+function updateBudgetLive() {
+  const cats = getCats();
+  let prepaSum = 0, mensuelSum = 0, allSum = 0;
+  cats.forEach(c => {
+    const el  = document.getElementById('b-budget-' + c.id);
+    const val = el && el.value !== '' ? (parseFloat(el.value) || 0) : getBudget(c.id);
+    if (c.type === 'prepa')    prepaSum   += val;
+    else if (c.type === 'mensuel') mensuelSum += val;
+    allSum += val;
+  });
+  const grandTotal = prepaSum + mensuelSum * 3;
+
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = fmtEur(v, 0); };
+  setTxt('bgt-tfoot-budget', allSum);      // tfoot du tableau
+  setTxt('bgt-bar-prepa',    prepaSum);    // mini-bar
+  setTxt('bgt-bar-mensuel',  mensuelSum);
+  setTxt('bgt-bar-total',    grandTotal);
+  setTxt('bgt-live-prepa',   prepaSum);    // section "Budget total stage" (si ouverte)
+  setTxt('bgt-live-mensuel', mensuelSum);
+  setTxt('bgt-live-total',   grandTotal);
 }
 
 function saveBudgetGlobal() {
