@@ -172,6 +172,26 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → supprime aussi le confirm() natif (peu mobile-friendly)
 
 
+── AMÉLIORATIONS FUTURES ──────────────────────────────────────────────────────
+
+[ ] Champ "montant réel payé" EUR fixe dans le formulaire de dépense
+    → champ optionnel : si renseigné, remplace le calcul automatique amount/rate
+    → valeur figée, ne se recalcule jamais même si le taux change
+    → utile quand le taux appliqué par la banque diffère du taux paramétré
+
+[ ] Export CSV — une ligne par dépense, compatible Excel / OPCO
+    → en complément du PDF et du ZIP existants
+
+[ ] Compression photo à l'import — redimensionner JPEG à 800px max avant IndexedDB
+    → évite que le stockage grossisse trop vite sur les missions longues
+
+[ ] Badge % budget consommé visible depuis tous les onglets (pas seulement Dashboard)
+    → petit indicateur dans le header ou la nav
+
+[ ] Raccourcis clavier desktop
+    → N = nouvelle dépense, S = settings
+
+
 ── PRIORITÉ ───────────────────────────────────────────────────────────────────
 
 [x] Calcul budget par mois dans "Budget total stage" : se met à jour en live
