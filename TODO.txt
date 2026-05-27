@@ -97,24 +97,30 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → bouton PDF dans index.html (icône document) à côté de Excel et ZIP
     → fallback si popup bloquée : téléchargement .html + toast explicatif
 
-[ ] Graphique évolution solde net (dépenses − gains) dans le temps
-    → réutiliser le code SVG du graphique courbe existant (render-dashboard.js),
-       ajouter les gains cumulés en deuxième courbe
+[x] Graphique évolution solde net (dépenses − gains) dans le temps
+    → gainPoints calculés dans buildProgressionData() : filtre gains, accumulation cumGain par bucket
+    → maxV inclut gainPoints si non vides ; gainPath tracé en vert pointillé (stroke-dasharray="6,3")
+    → gainAreaPath : remplissage vert transparent sous la courbe gains (linearGradient gain-grad)
+    → dots verts r=2.5 sur les points visibles (même step que les dépenses)
+    → légende dynamique : Dép. (accent) + Budget (gris tireté) + Gains (vert, affiché seulement si hasGains)
 
 
 ── TECHNIQUE ──────────────────────────────────────────────────────────────────
 
-[ ] Sync Gist : inclure les photos dans la sauvegarde cloud
-    ⚠ Photos en base64 = 5–15 Mo pour 30–50 photos, proche des limites Gist
-    → approche : second fichier Gist "mi-photos.json" séparé du JSON principal
-    → si trop lourd : documenter l'export JSON local complet (déjà présent)
-       comme procédure de sauvegarde photos entre appareils
+[x] Sync Gist : inclure les photos dans la sauvegarde cloud
+    → second fichier "mi-photos.json" dans le même Gist via PATCH séparé
+    → syncPhotosToGist() : lit IDB, filtre IDs valides, limite 9 Mo → toast si dépassé
+    → loadPhotosFromGist() : lit mi-photos.json, savePhotoIDB() pour chaque entrée, attache en mémoire
+    → settings.syncPhotos (bool, default false) — toggle dans Réglages → Sauvegarde Gist
+    → auto-déclenché après syncToGist() et loadFromGist() si settings.syncPhotos=true
+    → boutons manuels "Sauvegarder photos" / "Restaurer photos" dans le panneau Gist
 
-[ ] Gestion de conflit Gist : si modif sur deux appareils simultanément
-    ⚠ Vrai merge 3-way hors scope pour une appli vanilla JS solo
-    → approche retenue : comparer les savedAt timestamps, si le Gist est plus
-       récent que la dernière sync connue → dialog "Garder local / Charger Gist"
-       avec date et nb de dépenses de chaque version
+[x] Gestion de conflit Gist : si modif sur deux appareils simultanément
+    → settings.lastGistSync (ISO) — mis à jour après chaque syncToGist() réussi et chaque loadFromGist() appliqué
+    → conflit détecté si : gistSaved > lastGistSync ET localNb > 0 ET gistNb > 0
+    → showConflictDialog() : overlay fullscreen — deux colonnes (Cet appareil / Gist) avec date + nb dépenses
+    → "Garder local" → maj lastGistSync pour ne plus re-détecter ; "Charger Gist" → _applyGistData()
+    → loadFromGist(autoLoad=true) : bypasse le dialog de conflit (savePAT + saveGistId) ; false = bouton manuel
 
 [x] Cash : suivi total déjà en place
     → render-cash.js affiche Retiré / Dépensé / Restant en EUR et TND

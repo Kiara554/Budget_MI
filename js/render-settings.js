@@ -123,6 +123,19 @@ function renderSettings() {
         <input type="text" id="s-gist-id" value="${settings.githubGistId||''}" placeholder="ex: 4a3b2c1d…" autocomplete="off" spellcheck="false" style="flex:1;font-family:var(--fm);font-size:11px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);outline:none;min-width:0">
         <button onclick="saveGistId()" style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:12px;font-weight:700;cursor:pointer">OK</button>
       </div>
+      <!-- Sync photos toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:12px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Sync photos (reçus)</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;max-width:220px">Fichier séparé "mi-photos.json" — peut être lent si beaucoup de reçus</div>
+        </div>
+        <button onclick="toggleSyncPhotos()" class="toggle-btn${settings.syncPhotos?' on':''}" style="flex-shrink:0"><span class="toggle-knob"></span></button>
+      </div>
+      ${gistOk && settings.syncPhotos ? `
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-outline" onclick="syncPhotosToGist()" style="flex:1;min-height:40px;font-size:12px" ${settings.githubGistId?'':'disabled'}>Sauvegarder photos</button>
+        <button class="btn btn-outline" onclick="loadPhotosFromGist()" style="flex:1;min-height:40px;font-size:12px" ${settings.githubGistId?'':'disabled'}>Restaurer photos</button>
+      </div>` : ''}
     </div>`;
 
   const pinBody = `<div class="card" style="margin-bottom:0">
@@ -402,7 +415,7 @@ async function savePAT() {
         renderSettings();
         setSyncState('idle');
         toast('Gist trouvé ! Chargement des données…');
-        loadFromGist();
+        loadFromGist(true); // autoLoad : l'utilisateur vient de connecter son token
       } else {
         setSyncState('idle');
         toast('Aucun Gist existant — la première sauvegarde en créera un.');

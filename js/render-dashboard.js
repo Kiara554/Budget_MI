@@ -130,7 +130,17 @@ function renderDash() {
       return totalBudget * dayNum / totalDays;
     });
 
-    return { points, budgetPoints, totalBudget, startStr, endStr };
+    // Gains curve: cumulative gains per bucket
+    const gainRel = gains.filter(g => g.date >= startStr && g.date <= endStr);
+    let cumGain = 0;
+    const gainPoints = buckets.map(b => {
+      const bEnd = b.endDate || b.date;
+      const v = gainRel.filter(g => g.date >= b.date && g.date <= bEnd).reduce((s,g) => s + gainEur(g), 0);
+      cumGain += v;
+      return cumGain;
+    });
+
+    return { points, budgetPoints, gainPoints, totalBudget, startStr, endStr };
   }
 
   // Donut segments
@@ -443,13 +453,14 @@ function renderDash() {
         </div>`;
       }).join('')}
     </div>` : (()=>{
-      const { points, budgetPoints, totalBudget } = buildProgressionData();
+      const { points, budgetPoints, gainPoints, totalBudget } = buildProgressionData();
       if (!points.length) return `<div style="text-align:center;color:var(--text3);font-size:13px;padding:24px 0">Aucune dépense</div>`;
 
+      const hasGains = gainPoints.some(v => v > 0);
       const svgW = 300, svgH = 130, padL = 36, padR = 10, padT = 22, padB = 26;
       const plotW = svgW - padL - padR;
       const plotH = svgH - padT - padB;
-      const maxV  = Math.max(...points.map(p=>p.value), ...budgetPoints, 1);
+      const maxV  = Math.max(...points.map(p=>p.value), ...budgetPoints, ...(hasGains ? gainPoints : []), 1);
 
       const toX = i => padL + (i / (points.length - 1 || 1)) * plotW;
       const toY = v => padT + plotH - (v / maxV) * plotH;
@@ -457,6 +468,8 @@ function renderDash() {
       const linePath = points.map((p,i) => `${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(p.value).toFixed(1)}`).join(' ');
       const budPath  = budgetPoints.map((v,i) => `${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
       const areaPath = linePath + ` L${toX(points.length-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${toX(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+      const gainPath = hasGains ? gainPoints.map((v,i) => `${i===0?'M':'L'}${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ') : '';
+      const gainAreaPath = hasGains ? gainPath + ` L${toX(gainPoints.length-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${toX(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z` : '';
 
       // Y-axis labels (3 ticks)
       const yTicks = [0, 0.5, 1].map(f => ({ v: maxV*f, y: toY(maxV*f) }));
@@ -467,12 +480,23 @@ function renderDash() {
       // Today marker index
       const todayIdx = points.findIndex(p=>p.isToday);
 
+      // Legend layout: budget always shown; gains only if non-zero
+      const legendItems = [
+        { x: svgW-120, dash: false, color: 'var(--accent)',   label: 'Dép.' },
+        { x: svgW-86,  dash: true,  color: 'rgba(120,120,160,0.55)', label: 'Budget' },
+        ...(hasGains ? [{ x: svgW-40, dash: false, color: 'var(--green)', label: 'Gains' }] : []),
+      ];
+
       return `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:150px;overflow:visible">
         <defs>
           <linearGradient id="prog-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/>
             <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.02"/>
           </linearGradient>
+          ${hasGains ? `<linearGradient id="gain-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--green)" stop-opacity="0.14"/>
+            <stop offset="100%" stop-color="var(--green)" stop-opacity="0.01"/>
+          </linearGradient>` : ''}
         </defs>
 
         <!-- Y-axis ticks and labels -->
@@ -484,8 +508,14 @@ function renderDash() {
         <!-- Budget pace line -->
         <path d="${budPath}" fill="none" stroke="rgba(120,120,160,0.4)" stroke-width="1.5" stroke-dasharray="5,4"/>
 
-        <!-- Area fill -->
+        <!-- Gains area fill -->
+        ${hasGains ? `<path d="${gainAreaPath}" fill="url(#gain-grad)"/>` : ''}
+
+        <!-- Area fill (expenses) -->
         <path d="${areaPath}" fill="url(#prog-grad)"/>
+
+        <!-- Gains curve -->
+        ${hasGains ? `<path d="${gainPath}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6,3"/>` : ''}
 
         <!-- Spending curve -->
         <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -496,7 +526,7 @@ function renderDash() {
           <text x="${toX(todayIdx).toFixed(1)}" y="${(padT-4).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--orange)" font-family="Nunito,sans-serif">Auj.</text>
         ` : ''}
 
-        <!-- Dots + labels for visible points -->
+        <!-- Dots + labels for visible points (expenses) -->
         ${points.map((p, i) => {
           const show = (i % step === 0) || i === points.length - 1;
           const overBudget = p.value > budgetPoints[i];
@@ -508,9 +538,18 @@ function renderDash() {
           `;
         }).join('')}
 
-        <!-- Budget legend -->
-        <line x1="${svgW-60}" y1="${padT+6}" x2="${svgW-48}" y2="${padT+6}" stroke="rgba(120,120,160,0.5)" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <text x="${svgW-45}" y="${padT+10}" font-size="8" fill="var(--text3)" font-family="Nunito,sans-serif">Budget</text>
+        <!-- Gains dots for visible points -->
+        ${hasGains ? points.map((p, i) => {
+          const show = (i % step === 0) || i === points.length - 1;
+          const gv = gainPoints[i];
+          return show && gv > 0 ? `<circle cx="${toX(i).toFixed(1)}" cy="${toY(gv).toFixed(1)}" r="2.5" fill="var(--green)" stroke="white" stroke-width="1.2"/>` : '';
+        }).join('') : ''}
+
+        <!-- Legend -->
+        ${legendItems.map(it => `
+          <line x1="${it.x}" y1="${padT+5}" x2="${it.x+10}" y2="${padT+5}" stroke="${it.color}" stroke-width="1.8" ${it.dash?'stroke-dasharray="4,3"':''}/>
+          <text x="${it.x+13}" y="${padT+9}" font-size="8" fill="var(--text3)" font-family="Nunito,sans-serif">${it.label}</text>
+        `).join('')}
       </svg>`;
     })()}
   </div>

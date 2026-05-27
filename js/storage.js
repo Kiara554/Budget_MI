@@ -76,7 +76,7 @@ async function load() {
   try { gains       = JSON.parse(localStorage.getItem('mi_gains'))       || []; } catch(e){ gains=[]; }
   try { templates   = JSON.parse(localStorage.getItem('mi_templates'))   || []; } catch(e){ templates=[]; }
   try {
-    const defaults = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
+    const defaults = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:'', syncPhotos:false, lastGistSync:null};
     settings = Object.assign(defaults, JSON.parse(localStorage.getItem('mi_settings'))||{});
   } catch(e) {
     settings = {rate:3.38, budgets:{}, paymentMethods:null, githubPAT:'', githubGistId:''};
