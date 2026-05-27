@@ -27,14 +27,25 @@ function renderRemb() {
   const pctRemb      = totalDepense>0 ? totalRemb/totalDepense*100 : 0;
   const pctPlafond   = opcoEffectiveMax>0 ? totalRembCapped/opcoEffectiveMax*100 : 0;
   const monthlyTotals = MONTH_DATES.map(ym=>allRemb.filter(e=>getMonth(e)===ym).reduce((s,e)=>s+expenseEur(e),0));
-  const monthlyOpco   = MONTH_DATES.map(ym=>{
-    const moRemb = allRemb.filter(e=>getMonth(e)===ym);
-    return getCats().reduce((s,c)=>{
-      const p = getPlafond(c.id);
-      const catTotal = moRemb.filter(e=>e.catId===c.id).reduce((t,e)=>t+expenseEur(e),0);
-      return s + (p !== null ? Math.min(catTotal, p) : catTotal);
-    }, 0);
-  });
+  // Plafonds distribués chronologiquement : mai consomme en premier,
+  // les mois suivants héritent du quota restant (évite de compter 2× le même plafond)
+  const monthlyOpco = (() => {
+    const quotas = {};
+    getCats().forEach(c => { quotas[c.id] = getPlafond(c.id); }); // null = sans plafond
+    return MONTH_DATES.map(ym => {
+      const moRemb = allRemb.filter(e => getMonth(e) === ym);
+      return getCats().reduce((s, c) => {
+        const catTotal = moRemb.filter(e => e.catId === c.id).reduce((t, e) => t + expenseEur(e), 0);
+        if (catTotal === 0) return s;
+        const q = quotas[c.id];
+        if (q === null) return s + catTotal;       // pas de plafond → tout éligible
+        if (q <= 0)     return s;                  // quota épuisé
+        const capped = Math.min(catTotal, q);
+        quotas[c.id] = q - capped;                 // épuiser le quota restant pour les mois suivants
+        return s + capped;
+      }, 0);
+    });
+  })();
   const catRemb = getCats().filter(c=>getPlafond(c.id)!==null).map(c=>{
     const exps=rembExp.filter(e=>e.catId===c.id), total=exps.reduce((s,e)=>s+expenseEur(e),0);
     const plafond=getPlafond(c.id), quota=Math.min(total,plafond);

@@ -40,12 +40,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → ajouter settings.rateUSD, lire data.rates.USD dans fetchRate() qui
        utilise déjà open.er-api.com/v6/latest/EUR (même requête que TND)
 
-[ ] OPCO par mois : bug de plafonnement
-    → monthlyOpco applique le plafond PAR MOIS indépendamment : si tu dépenses
-       200€ en mai + 200€ en juin pour une catégorie plafonnée 300€ stage,
-       il affiche 400€ OPCO alors que le max est 300€
-    → fix : distribuer le plafond global chronologiquement (mai d'abord,
-       épuiser le quota, les mois suivants héritent du solde restant)
+[x] OPCO par mois : bug de plafonnement
+    → monthlyOpco recalculé avec quotas{} initialisés à getPlafond() par catégorie
+    → chaque mois consomme son quota puis met à jour quotas[c.id] = restant
+    → les mois suivants héritent du quota restant (quotas épuisés → 0€ OPCO)
+    → totalRembCapped (vue "all") était déjà correct (somme globale → ok)
 
 
 ── FONCTIONNALITÉS ────────────────────────────────────────────────────────────
