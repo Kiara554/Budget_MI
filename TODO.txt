@@ -66,8 +66,10 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → mini graphe barres par jour (Lun→Dim), barre accent = jour max
     → tuile catégorie la plus fréquente + tuile dépense la plus élevée
 
-[ ] Champ notes sur une tâche Todo (contexte court sous le titre, optionnel)
-    → ajouter notes au modèle todoItems, textarea dans le formulaire d'édition
+[x] Champ notes sur une tâche Todo (contexte court sous le titre, optionnel)
+    → textarea "NOTES" dans le formulaire d'édition (renderTodoItem edit mode)
+    → saveTodoEdit() lit tp-notes-{id}, stocke t.notes (null si vide)
+    → affiché en gris sous le titre en vue normale (masqué si tâche cochée)
 
 [ ] Lier une tâche Todo à une dépense existante
     (ex. "vérifier ce reçu" → pointe vers la dépense)

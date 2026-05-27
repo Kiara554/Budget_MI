@@ -268,6 +268,10 @@ function renderTodoItem(t, cats) {
           </button>`;
         }).join('')}
       </div>` : ''}
+      <div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:6px">NOTES</div>
+      <textarea class="form-input" id="tp-notes-${t.id}" placeholder="Contexte, détails…"
+        style="width:100%;min-height:64px;margin-bottom:12px;box-sizing:border-box;resize:vertical;font-size:13px;line-height:1.4"
+      >${escHtml(t.notes||'')}</textarea>
       <div style="display:flex;gap:6px">
         <button onclick="saveTodoEdit('${t.id}')" style="flex:1;padding:9px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer">Enregistrer</button>
         <button onclick="todoEditId=null;renderTodo()" style="padding:9px 14px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--text2);font-size:13px;cursor:pointer">Annuler</button>
@@ -283,6 +287,7 @@ function renderTodoItem(t, cats) {
     </button>
     <div style="flex:1;min-width:0;cursor:pointer" onclick="todoEditId='${t.id}';renderTodo()">
       <div style="font-size:14px;font-weight:600;color:${t.done?'var(--text3)':'var(--text)'};text-decoration:${t.done?'line-through':'none'};word-break:break-word;line-height:1.35">${escHtml(t.text)}</div>
+      ${t.notes&&!t.done?`<div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.45;word-break:break-word">${escHtml(t.notes)}</div>`:''}
       ${(cat||due||pr) ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;align-items:center">
         ${pr&&!t.done?`<span style="font-size:11px;font-weight:700;color:${pr.color};padding:1px 7px;border-radius:10px;background:${pr.pale}">${pr.dot} ${pr.label}</span>`:''}
         ${due?`<span style="font-size:11px;font-weight:700;color:${due.col};padding:1px 7px;border-radius:10px;background:${due.bg}">📅 ${due.label}</span>`:''}
@@ -318,6 +323,8 @@ function saveTodoEdit(id) {
   if (prEl)  t.priority = prEl.value  || null;
   if (duEl)  t.dueDate  = duEl.value  || null;
   if (catEl) t.cat      = catEl.value || null;
+  const notesEl = document.getElementById('tp-notes-'+id);
+  if (notesEl) t.notes = notesEl.value.trim() || null;
   todoEditId = null;
   save(); renderTodo();
 }
