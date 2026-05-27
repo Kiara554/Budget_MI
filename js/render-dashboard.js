@@ -143,6 +143,25 @@ function renderDash() {
 
   const pctColor = pctUsed < 70 ? 'var(--green)' : pctUsed < 90 ? 'var(--orange)' : 'var(--red)';
 
+  // Statistiques dépenses (carte collapsible)
+  const _DAY_LABELS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const _dayTotals  = [0,0,0,0,0,0,0];
+  spendExp.forEach(e => {
+    if (!e.date) return;
+    const dow = (new Date(e.date + 'T12:00:00').getDay() + 6) % 7;
+    _dayTotals[dow] += expenseEur(e);
+  });
+  const _maxDayV   = Math.max(..._dayTotals, 0.01);
+  const _topDayIdx = _dayTotals.indexOf(Math.max(..._dayTotals));
+  const _catFreq   = {};
+  spendExp.forEach(e => { _catFreq[e.catId] = (_catFreq[e.catId] || 0) + 1; });
+  const _topCatEntry = Object.entries(_catFreq).sort((a,b) => b[1]-a[1])[0];
+  const _topCat      = _topCatEntry ? getCatMap()[_topCatEntry[0]] : null;
+  const _topCatCount = _topCatEntry?.[1] || 0;
+  const _topExp = spendExp.length > 0
+    ? spendExp.reduce((a,b) => expenseEur(a) >= expenseEur(b) ? a : b)
+    : null;
+
   const body = document.getElementById('dash-body');
   // Compte à rebours fin de stage
   const _today    = new Date(); _today.setHours(0,0,0,0);
@@ -345,6 +364,51 @@ function renderDash() {
       </div>`;
     }).join('')}
   </div>
+
+  <!-- Statistiques dépenses (collapsible) -->
+  ${spendExp.length > 0 ? `
+  <div class="card" style="padding:0;overflow:hidden">
+    <button onclick="dashStatsOpen=!dashStatsOpen;renderDash()"
+      style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:none;border:none;cursor:pointer;text-align:left">
+      <span class="card-title" style="margin:0;display:flex;align-items:center;gap:7px">${icon('info',15,'var(--text2)')} Statistiques</span>
+      <span style="font-size:13px;color:var(--text3);line-height:1">${dashStatsOpen?'▲':'▼'}</span>
+    </button>
+    ${dashStatsOpen ? `
+    <div style="padding:0 14px 14px">
+      <div style="font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.5px;margin-bottom:8px">DÉPENSES PAR JOUR DE LA SEMAINE</div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:56px">
+        ${_DAY_LABELS.map((lbl,i) => {
+          const h = Math.max(3, (_dayTotals[i] / _maxDayV) * 44).toFixed(0);
+          const isTop = i === _topDayIdx && _dayTotals[i] > 0;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="width:100%;height:${h}px;background:${isTop?'var(--accent)':'var(--surface2)'};border-radius:4px 4px 2px 2px"></div>
+            <span style="font-size:9px;font-weight:${isTop?800:600};color:${isTop?'var(--accent)':'var(--text3)'}">${lbl}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${_dayTotals[_topDayIdx] > 0 ? `
+      <div style="font-size:12px;color:var(--text2);margin-top:8px">
+        Jour le plus dépensier : <strong style="color:var(--accent)">${_DAY_LABELS[_topDayIdx]}</strong> — ${dashFmt(_dayTotals[_topDayIdx],0)}
+      </div>` : ''}
+      ${_topCat ? `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:12px;margin-top:12px">
+        ${catIconHtml(_topCatEntry[0],18)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--text)">${_topCat.lbl}</div>
+          <div style="font-size:11px;color:var(--text3)">Catégorie la plus fréquente — ${_topCatCount} fois</div>
+        </div>
+      </div>` : ''}
+      ${_topExp ? `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:12px;margin-top:8px">
+        ${catIconHtml(_topExp.catId,18)}
+        <div style="flex:1;min-width:0;overflow:hidden">
+          <div style="font-size:12px;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(_topExp.enseigne||getCatMap()[_topExp.catId]?.lbl||'Divers')}</div>
+          <div style="font-size:11px;color:var(--text3)">${formatDate(_topExp.date)} — dépense la plus élevée</div>
+        </div>
+        <span style="font-size:14px;font-weight:800;font-family:var(--fm);color:var(--text);flex-shrink:0">${dashFmt(expenseEur(_topExp),0)}</span>
+      </div>` : ''}
+    </div>` : ''}
+  </div>` : ''}
 
   <!-- Monthly mini chart -->
   <div class="card">

@@ -20,6 +20,7 @@ let detailId  = null;
 let editingId = null;
 let dashChartMode = 'bar'; // 'bar' | 'curve'
 let dashChartGranularity = 'week'; // 'day' | 'week'
+let dashStatsOpen = false;
 let todoItems = [];
 let extraPhotoDatas = []; // justificatifs supplémentaires en cours d'édition
 let catSettingsEditId = null;

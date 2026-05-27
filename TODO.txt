@@ -60,8 +60,11 @@ Légende : [ ] à faire  [~] en cours  [x] fait
     → _prevMoIdx = MONTHS.indexOf(filterMo) - 1, calcul _deltaDep / _deltaRemb
     → visible uniquement pour juin / juil / août (pas all, pas mai)
 
-[ ] Statistiques dépenses : jour de la semaine le plus dépensier, catégorie
+[x] Statistiques dépenses : jour de la semaine le plus dépensier, catégorie
     la plus fréquente — carte collapsible sur le dashboard
+    → dashStatsOpen (state.js), toggle bouton ▼/▲ dans renderDash()
+    → mini graphe barres par jour (Lun→Dim), barre accent = jour max
+    → tuile catégorie la plus fréquente + tuile dépense la plus élevée
 
 [ ] Champ notes sur une tâche Todo (contexte court sous le titre, optionnel)
     → ajouter notes au modèle todoItems, textarea dans le formulaire d'édition
