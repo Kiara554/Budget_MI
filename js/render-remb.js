@@ -490,3 +490,154 @@ function exportRembExcel() {
   document.body.removeChild(a); URL.revokeObjectURL(url);
   toast(`Note de frais exportée — ${sorted.length} dépenses ✓`);
 }
+
+async function exportRembPDF() {
+  const rembExp = expenses.filter(e => e.remb);
+  if (!rembExp.length) { toast('Aucune dépense remboursable'); return; }
+  toast('Génération du PDF…');
+
+  const sorted   = rembExp.slice().sort((a,b) => a.date.localeCompare(b.date));
+  const rate     = settings.rate || 3.38;
+  const totalEur = sorted.reduce((s,e) => s + expenseEur(e), 0);
+
+  // Plafond OPCO (chronologique, même logique que renderRemb)
+  const quotas = {};
+  getCats().forEach(c => { quotas[c.id] = getPlafond(c.id); });
+  const totalCapped = sorted.reduce((s,e) => {
+    const q = quotas[e.catId];
+    if (q === null || q === undefined) return s + expenseEur(e);
+    if (q <= 0) return s;
+    const capped = Math.min(expenseEur(e), q);
+    quotas[e.catId] = q - capped;
+    return s + capped;
+  }, 0);
+
+  // Lignes tableau récap
+  const rows = sorted.map((e, i) => {
+    const cat = getCatMap()[e.catId];
+    const eur = expenseEur(e);
+    const thumb = e.photo && !e.photo.startsWith('data:application/pdf')
+      ? `<img src="${e.photo}" style="max-width:72px;max-height:54px;display:block;margin:auto;border-radius:3px">`
+      : e.photo ? '<span style="font-size:9px;color:#666">PDF</span>' : '—';
+    return `<tr style="background:${i%2?'#f5f7ff':'#fff'}">
+      <td style="text-align:center;white-space:nowrap;color:#555">${e.date}</td>
+      <td>${cat?.lbl||e.catId}</td>
+      <td>${e.enseigne?escHtml(e.enseigne):''}${e.desc?` <span style="color:#888">— ${escHtml(e.desc)}</span>`:''}</td>
+      <td style="text-align:right;font-family:monospace">${Number(e.amount).toFixed(2)} ${e.currency||'EUR'}</td>
+      <td style="text-align:right;font-family:monospace;font-weight:700">${eur.toFixed(2)} €</td>
+      <td style="text-align:center;color:${e.recu?'#166534':'#b91c1c'};font-weight:700">${e.recu?'Oui':'Non'}</td>
+      <td style="text-align:center;padding:3px">${thumb}</td>
+    </tr>`;
+  }).join('');
+
+  // Pages justificatifs (une dépense par page)
+  const justifPages = sorted
+    .filter(e => e.photo || (e.extraPhotos||[]).some(p => p.data))
+    .map(e => {
+      const cat = getCatMap()[e.catId];
+      const allPhotos = [
+        e.photo ? { data: e.photo, isPdf: e.photo.startsWith('data:application/pdf') } : null,
+        ...(e.extraPhotos||[]).filter(p => p.data).map(p => ({ data: p.data, isPdf: p.type==='application/pdf' }))
+      ].filter(Boolean);
+      return `<div style="page-break-before:always;padding:20px 24px">
+        <div style="font-size:12px;font-weight:bold;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #1f3864;color:#1f3864">
+          ${e.date} &nbsp;·&nbsp; ${cat?.lbl||e.catId} &nbsp;·&nbsp; ${e.enseigne?escHtml(e.enseigne):''}${e.desc?` — ${escHtml(e.desc)}`:''} &nbsp;·&nbsp; <span style="color:#166534">${expenseEur(e).toFixed(2)} €</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">
+          ${allPhotos.map(p => p.isPdf
+            ? `<div style="font-size:11px;color:#555;border:1px solid #ddd;padding:16px 24px;border-radius:6px;text-align:center">Document PDF<br><span style="font-size:9px">(non inclus dans la vue HTML)</span></div>`
+            : `<img src="${p.data}" style="max-width:100%;max-height:720px;border:1px solid #eee;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.1)">`
+          ).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dossier OPCO — ${new Date().toISOString().slice(0,10)}</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:11px;margin:0;color:#222}
+    .no-print{text-align:center;padding:14px 20px;background:#eef2ff;border-bottom:2px solid #c7d2fe;display:flex;align-items:center;justify-content:center;gap:10px}
+    .no-print button{padding:8px 22px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700}
+    .btn-print{background:#1d4ed8;color:#fff}
+    .btn-close{background:#e5e7eb;color:#374151}
+    .header{padding:18px 24px 14px;border-bottom:3px solid #1f3864}
+    .header h1{font-size:14px;color:#1f3864;margin:0 0 10px;letter-spacing:.3px}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;font-size:11px}
+    .info-label{font-weight:700;color:#4b5563}
+    table{width:100%;border-collapse:collapse;font-size:10px;margin:0}
+    th{background:#1f3864;color:#fff;padding:5px 8px;text-align:left;font-size:10px}
+    td{padding:4px 8px;border-bottom:1px solid #e8ecf4;vertical-align:middle}
+    .total-row{font-weight:700;background:#dce6f1}
+    .opco-row{font-weight:700;background:#dcfce7;color:#166534}
+    .certif{font-size:10px;font-style:italic;color:#555;border:1px solid #fbbf24;background:#fffbeb;padding:8px 12px;border-radius:4px;margin:14px 0}
+    .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;font-size:11px}
+    @media print{.no-print{display:none!important}body{font-size:10px}table{font-size:9px}}
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <button class="btn-print" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+    <button class="btn-close" onclick="window.close()">Fermer</button>
+    <span style="font-size:11px;color:#6b7280">Les justificatifs apparaissent après le tableau (une page par dépense)</span>
+  </div>
+  <div class="header">
+    <h1>NOTE DE FRAIS — MOBILITÉ INTERNATIONALE APPRENTIS (LEEM)</h1>
+    <div class="info-grid">
+      <div><span class="info-label">Campus :</span> Nanterre</div>
+      <div><span class="info-label">École :</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+      <div><span class="info-label">Nom :</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+      <div><span class="info-label">Prénom :</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+      <div><span class="info-label">Taux de change :</span> ${rate} TND/€</div>
+      <div><span class="info-label">Date d'édition :</span> ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>
+  </div>
+  <div style="padding:14px 24px">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Catégorie</th><th>Description</th>
+        <th style="text-align:right">Montant devises</th>
+        <th style="text-align:right">Montant €</th>
+        <th style="text-align:center">Reçu</th>
+        <th style="text-align:center">Justif.</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="3" style="text-align:right">TOTAL</td>
+          <td></td><td style="text-align:right">${totalEur.toFixed(2)} €</td><td colspan="2"></td>
+        </tr>
+        <tr class="opco-row">
+          <td colspan="3" style="text-align:right">REMBOURSABLE OPCO (plafonds appliqués)</td>
+          <td></td><td style="text-align:right">${totalCapped.toFixed(2)} €</td><td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="certif">Je certifie sur l'honneur l'exactitude de tous les renseignements portés sur la présente note de frais, sachant que toute erreur ou omission peut entraîner le rejet de la demande ou le retrait de l'aide.</p>
+    <div class="sign-grid">
+      <div>Date : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+      <div>Nom, Prénom, Signature : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    </div>
+  </div>
+  ${justifPages}
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) {
+    // Popup bloquée — télécharger le fichier
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dossier_opco_${new Date().toISOString().slice(0,10)}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Fichier HTML téléchargé — ouvre-le puis Fichier › Imprimer');
+  } else {
+    toast(`Dossier prêt — ${sorted.length} dépenses · clique "Imprimer" dans la fenêtre`);
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}

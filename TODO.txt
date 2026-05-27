@@ -90,11 +90,12 @@ Légende : [ ] à faire  [~] en cours  [x] fait
        si recurringDay === today.getDate() et aucun rappel déjà créé aujourd'hui (reminderId)
     → bouton "Appliquer le modèle" sur les todos reminderId → ouvre modal + applique template + coche todo
 
-[ ] Export PDF dossier OPCO (justificatifs + tableau récap)
-    ⚠ Pas de bibliothèque jsPDF — trop lourd pour une appli vanilla
-    → générer une vue HTML dédiée + appeler window.print() avec CSS print,
-       même pattern que l'export Excel existant (HTML → Blob)
-    → actuellement : Excel + ZIP photos séparés
+[x] Export PDF dossier OPCO (justificatifs + tableau récap)
+    → exportRembPDF() dans render-remb.js : HTML → Blob → window.open()
+    → page 1 : tableau récap (date/cat/desc/montants/reçu/thumb) + total + plafond OPCO
+    → pages suivantes : une page par dépense avec justificatif en grand (page-break-before)
+    → bouton PDF dans index.html (icône document) à côté de Excel et ZIP
+    → fallback si popup bloquée : téléchargement .html + toast explicatif
 
 [ ] Graphique évolution solde net (dépenses − gains) dans le temps
     → réutiliser le code SVG du graphique courbe existant (render-dashboard.js),
