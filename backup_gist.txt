@@ -1,0 +1,7 @@
+à lancer sur powershell
+$token  = "ghp_XXXX"
+$resp   = Invoke-RestMethod `
+    -Uri "https://api.github.com/gists/37f6a8c948aa26209141ed165ed69f20/e2ac7460cc5408220ba118356f4d5f6850272ea9" `
+    -Headers @{ Authorization = "token $token" }
+$resp.files.'mi-depenses.json'.content | Out-File "$env:USERPROFILE\Desktop\backup.json" -Encoding utf8
+Write-Host "Fichier sauvegardé sur le Bureau"
