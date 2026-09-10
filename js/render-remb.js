@@ -413,6 +413,29 @@ function exportRembExcel() {
   const totalEur = sorted.reduce((s,e) => s + expenseEur(e), 0);
   const rate     = settings.rate || 3.38;
 
+  // Construire la même liste que downloadAllPhotos pour aligner les numéros de fichiers
+  const withJustif = expenses
+    .filter(e => e.remb && (e.photo || (e.extraPhotos||[]).length > 0))
+    .slice().sort((a, b) => a.date.localeCompare(b.date));
+  const justifMap = {}; // id → { num, filenames[] }
+  withJustif.forEach((e, i) => {
+    const cat   = getCats().find(c => c.id === e.catId);
+    const num   = String(i + 1).padStart(2, '0');
+    const label = (e.enseigne || cat?.lbl || e.catId).replace(/[^a-zA-Z0-9À-ÿ\-_]/g, '_').slice(0, 25);
+    const eur   = expenseEur(e).toFixed(0);
+    const filenames = [];
+    if (e.photo) {
+      const ext = e.photo.startsWith('data:application/pdf') ? 'pdf' : 'jpg';
+      filenames.push(`${num}_${e.date}_${label}_${eur}EUR.${ext}`);
+    }
+    (e.extraPhotos || []).forEach((p, j) => {
+      if (!p.data) return;
+      const ext = p.type === 'application/pdf' ? 'pdf' : 'jpg';
+      filenames.push(`${num}_${e.date}_${label}_${eur}EUR_extra${j+1}.${ext}`);
+    });
+    justifMap[e.id] = { num, filenames };
+  });
+
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
     xmlns:x="urn:schemas-microsoft-com:office:excel"
     xmlns="http://www.w3.org/TR/REC-html40">
@@ -434,7 +457,7 @@ function exportRembExcel() {
 <table border="1" cellspacing="0" cellpadding="5"
   style="border-collapse:collapse;font-size:11px;width:100%">
   <tr>
-    <td colspan="8" style="font-size:13px;font-weight:bold;text-align:center;background:#1f3864;color:#fff;padding:10px">
+    <td colspan="7" style="font-size:13px;font-weight:bold;text-align:center;background:#1f3864;color:#fff;padding:10px">
       FORMULAIRE NOTE DE FRAIS — MOBILITÉ INTERNATIONALE APPRENTIS
     </td>
   </tr>
@@ -442,21 +465,21 @@ function exportRembExcel() {
     <td colspan="2" class="hdr">Campus :</td>
     <td colspan="2">Nanterre</td>
     <td colspan="2" class="hdr">ÉCOLE :</td>
-    <td colspan="2"></td>
+    <td></td>
   </tr>
   <tr>
     <td colspan="2" class="hdr">Nom :</td>
     <td colspan="2"></td>
     <td colspan="2" class="hdr">Prénom :</td>
-    <td colspan="2"></td>
+    <td></td>
   </tr>
   <tr>
     <td colspan="2" class="hdr">Promo :</td>
     <td colspan="2"></td>
     <td colspan="2" class="hdr">Taux de change =</td>
-    <td colspan="2">${rate} TND/€</td>
+    <td>${rate} TND/€</td>
   </tr>
-  <tr><td colspan="8" style="padding:4px;border:none"></td></tr>
+  <tr><td colspan="7" style="padding:4px;border:none"></td></tr>
   <tr>
     <td class="col-hdr" style="width:80px">DATE</td>
     <td class="col-hdr" style="width:120px">TYPE DE DÉPENSE</td>
@@ -464,36 +487,38 @@ function exportRembExcel() {
     <td class="col-hdr" style="width:100px">MONTANT TTC (devises)</td>
     <td class="col-hdr" style="width:90px">MONTANT EN EUROS</td>
     <td class="col-hdr" style="width:40px">N° JUSTIF.</td>
-    <td class="col-hdr" style="width:130px">NOM DU JUSTIFICATIF</td>
-    <td class="col-hdr" style="width:120px">JUSTIFICATIF</td>
+    <td class="col-hdr" style="width:220px">FICHIER(S) JUSTIFICATIF</td>
   </tr>
-  ${sorted.map((e,i) => `<tr class="${i%2===1?'alt':''}">
+  ${sorted.map((e,i) => {
+    const j = justifMap[e.id];
+    const numCell   = j ? j.num : '';
+    const filesCell = j
+      ? j.filenames.map(f => escHtml(f)).join('<br>')
+      : '<span style="color:#c00;font-size:10px">⚠ Pas de justificatif</span>';
+    return `<tr class="${i%2===1?'alt':''}">
     <td style="white-space:nowrap;text-align:center">${e.date}</td>
     <td>${getCatMap()[e.catId]?.lbl || e.catId}</td>
     <td>${e.enseigne ? escHtml(e.enseigne) : ''}${e.desc ? ' — '+escHtml(e.desc) : ''}</td>
     <td style="text-align:right;font-family:monospace">${Number(e.amount).toFixed(2)} ${e.currency || 'EUR'}</td>
     <td style="text-align:right;font-family:monospace;font-weight:bold">${expenseEur(e).toFixed(2)} €</td>
-    <td style="text-align:center">${i+1}</td>
-    <td style="font-size:10px;color:#444">${e.recuName ? escHtml(e.recuName) : ''}</td>
-    <td style="text-align:center;padding:2px">${e.photo
-      ? `<img src="${e.photo}" style="max-width:110px;max-height:80px;display:block;margin:auto">`
-      : '<span style="color:#ccc;font-size:10px">—</span>'
-    }</td>
-  </tr>`).join('')}
+    <td style="text-align:center;font-weight:bold">${numCell}</td>
+    <td style="font-size:10px;color:#1f3864">${filesCell}</td>
+  </tr>`;
+  }).join('')}
   <tr class="total-row">
     <td colspan="3" style="text-align:right;font-weight:bold">TOTAL</td>
     <td style="text-align:right;font-family:monospace">${totalTtc.toFixed(2)}</td>
     <td style="text-align:right;font-family:monospace;font-weight:bold">${totalEur.toFixed(2)} €</td>
-    <td colspan="3"></td>
+    <td colspan="2"></td>
   </tr>
-  <tr><td colspan="8" style="padding:8px;border:none"></td></tr>
+  <tr><td colspan="7" style="padding:8px;border:none"></td></tr>
   <tr>
-    <td colspan="8" style="font-size:10px;font-style:italic;color:#555;padding:6px 8px;background:#fffbe6;border:1px solid #e6d88a">
-      Joindre impérativement les tickets de caisse correspondants.
+    <td colspan="7" style="font-size:10px;font-style:italic;color:#555;padding:6px 8px;background:#fffbe6;border:1px solid #e6d88a">
+      Joindre impérativement les tickets de caisse correspondants (voir fichiers ZIP numérotés).
     </td>
   </tr>
   <tr>
-    <td colspan="8" style="font-size:10px;color:#444;padding:8px;line-height:1.5">
+    <td colspan="7" style="font-size:10px;color:#444;padding:8px;line-height:1.5">
       Je certifie sur l'honneur l'exactitude de tous les renseignements portés sur la présente note de frais,
       sachant que toute erreur ou omission dans ces renseignements peut entraîner le rejet de la demande
       ou le retrait de l'aide.
@@ -501,7 +526,7 @@ function exportRembExcel() {
   </tr>
   <tr>
     <td colspan="3" style="padding:12px 8px">Date :</td>
-    <td colspan="5" style="padding:12px 8px">Nom Prénom, signature :</td>
+    <td colspan="4" style="padding:12px 8px">Nom Prénom, signature :</td>
   </tr>
 </table>
 </body></html>`;
